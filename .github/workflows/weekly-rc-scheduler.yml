@@ -1,0 +1,35 @@
+name: weekly-rc-scheduler
+
+on:
+  schedule:
+    - cron: "1 0 * * 1"
+      timezone: "America/Los_Angeles"
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.SDK_RELEASE_APP_ID }}
+          private-key: ${{ secrets.SDK_RELEASE_APP_PRIVATE_KEY }}
+          owner: loomb-oai
+          repositories: test-private-repo
+
+      - name: Trigger release-bot RC cut
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: "loomb-oai",
+              repo: "test-private-repo",
+              event_type: "sdk-release",
+              client_payload: {
+                operation: "cut-rc",
+                "schedule-id": "weekly-rc"
+              }
+            });

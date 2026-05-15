@@ -16,6 +16,10 @@ The integrator-facing surface is now intentionally small:
 
 - `.github/workflows/release-bot.yml`
   - the copy-paste workflow entrypoint
+- `.github/workflows/nightly-beta-scheduler.yml`
+  - daily cron wrapper that dispatches `release-bot`
+- `.github/workflows/weekly-rc-scheduler.yml`
+  - Monday cron wrapper that dispatches `release-bot`
 - `.github/sdk-release.yml`
   - repo-owned release policy, schedules, package definitions, and registry settings
 - `.github/actions/sdk-release-sim`
@@ -23,11 +27,12 @@ The integrator-facing surface is now intentionally small:
 
 ## Control Plane
 
-The GitHub App is the cross-repo control plane:
+The near-term sample uses tiny scheduler workflows plus a GitHub App token:
 
-1. It reads `.github/sdk-release.yml` from the private repo default branch.
-2. It schedules named jobs such as `nightly-beta` and `weekly-rc`.
-3. When a schedule fires, it dispatches the private repo workflow with:
+1. `nightly-beta-scheduler.yml` runs at 6:00 PM Pacific.
+2. `weekly-rc-scheduler.yml` runs every Monday at 00:01 Pacific.
+3. Each scheduler mints a GitHub App installation token and dispatches the
+   private repo workflow with:
 
 ```json
 {
@@ -44,16 +49,15 @@ The GitHub App is the cross-repo control plane:
 5. The public release event wakes the same `release-bot` workflow in the public
    mirror, where the action models npm and PyPI publication.
 
-The sample repo models these boundaries and event shapes. It does not contain
-the long-running GitHub App scheduler service itself.
+This keeps scheduling native to GitHub Actions while keeping cross-repo auth on
+the GitHub App boundary.
 
 ## Lifecycle
 
 ```mermaid
 flowchart TD
-  A[".github/sdk-release.yml"] --> B["GitHub App reads schedules"]
-  B --> C["repository_dispatch: beta"]
-  B --> D["repository_dispatch: cut-rc"]
+  A["nightly-beta-scheduler"] --> C["repository_dispatch: beta"]
+  B["weekly-rc-scheduler"] --> D["repository_dispatch: cut-rc"]
   E["Manual workflow dispatch"] --> F["alpha or final"]
   G["Push to rc/**"] --> H["refresh RC"]
   C --> I["release-bot in private repo"]
@@ -68,7 +72,7 @@ flowchart TD
 
 ## Repo-Owned Schedule Config
 
-Schedules live in `.github/sdk-release.yml`, not in workflow cron syntax:
+The release policy still names the schedules in `.github/sdk-release.yml`:
 
 ```yaml
 schedules:
@@ -83,8 +87,8 @@ schedules:
     timezone: America/Los_Angeles
 ```
 
-The App can refresh its schedule table on config-file pushes and reconcile it
-periodically as a backstop.
+The two scheduler workflows carry the actual GitHub cron expressions today and
+send the matching `schedule-id` into `release-bot`.
 
 ## Release Channels
 
@@ -123,9 +127,8 @@ The public mirror is the registry publish surface:
 
 The App replaces any long-lived cross-repo token. It should:
 
-- read `.github/sdk-release.yml`
-- track schedules from the default branch
-- dispatch `repository_dispatch` events into the private repo
+- mint installation tokens for the scheduler workflows
+- authorize `repository_dispatch` into the private repo
 - observe private release tags or equivalent release-ready signals
 - mirror refs into the public repo
 - create the public GitHub Release that triggers registry publishing
@@ -133,13 +136,14 @@ The App replaces any long-lived cross-repo token. It should:
 ## How To Read The Demo
 
 1. Start with `.github/sdk-release.yml`.
-2. Read `.github/workflows/release-bot.yml`.
-3. Follow `scripts/sdk-release-sim.mjs` to see how one workflow run resolves:
+2. Read the two scheduler workflows.
+3. Read `.github/workflows/release-bot.yml`.
+4. Follow `scripts/sdk-release-sim.mjs` to see how one workflow run resolves:
    - manual workflow dispatches
-   - GitHub App `repository_dispatch` events
+   - scheduler `repository_dispatch` events
    - pushes to `rc/**`
    - public release events
-4. Inspect `dist/release-manifest.json` after a local simulation to see the
+5. Inspect `dist/release-manifest.json` after a local simulation to see the
    modeled npm/PyPI release output.
 
 ## What This Simulates
@@ -147,7 +151,8 @@ The App replaces any long-lived cross-repo token. It should:
 This is not a real package publisher. It is a visual model of the intended
 contract:
 
-- the GitHub App owns scheduling and cross-repo GitHub operations
+- scheduler workflows own the recurring wake-ups
+- the GitHub App owns cross-repo GitHub operations and dispatch authorization
 - the workflow is a stable CI entrypoint
 - the repo config owns release policy
 - the action owns event routing, build orchestration, and registry execution
