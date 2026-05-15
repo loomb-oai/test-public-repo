@@ -1,0 +1,60 @@
+name: "SDK Release Action"
+description: "Wraps Release Please and models the SDK release train for a monorepo."
+
+inputs:
+  mode:
+    description: "Optional local override. Defaults to auto event routing."
+    required: false
+    default: "auto"
+  config-file:
+    description: "Path to the repo-owned SDK release configuration"
+    required: false
+    default: ".github/sdk-release.yml"
+  release-please-config-file:
+    description: "Path to the Release Please manifest config."
+    required: false
+    default: ".github/release-please-config.json"
+  release-please-manifest-file:
+    description: "Path to the Release Please versions manifest."
+    required: false
+    default: ".release-please-manifest.json"
+  release-tag:
+    description: "Optional local override for registry-publish simulation."
+    required: false
+
+outputs:
+  release-version:
+    description: "Version handled by the simulated release action"
+    value: ${{ steps.run.outputs.release-version }}
+  release-tag:
+    description: "Tag handled by the simulated release action"
+    value: ${{ steps.run.outputs.release-tag }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Refresh Release Please plan
+      id: release-please
+      if: >-
+        ${{
+          github.repository == 'loomb-oai/test-private-repo' &&
+          github.event_name != 'release' &&
+          !(github.event_name == 'push' && startsWith(github.ref_name, 'rc/'))
+        }}
+      uses: googleapis/release-please-action@v4
+      with:
+        token: ${{ github.token }}
+        config-file: ${{ inputs.release-please-config-file }}
+        manifest-file: ${{ inputs.release-please-manifest-file }}
+        skip-github-release: true
+
+    - id: run
+      shell: bash
+      env:
+        SDK_RELEASE_MODE: ${{ inputs.mode }}
+        SDK_RELEASE_CONFIG: ${{ inputs.config-file }}
+        SDK_RELEASE_RELEASE_PLEASE_CONFIG: ${{ inputs.release-please-config-file }}
+        SDK_RELEASE_RELEASE_PLEASE_MANIFEST: ${{ inputs.release-please-manifest-file }}
+        SDK_RELEASE_RELEASE_PLEASE_PRS_CREATED: ${{ steps.release-please.outputs.prs_created }}
+        SDK_RELEASE_RELEASE_TAG: ${{ inputs.release-tag }}
+      run: node "$GITHUB_WORKSPACE/scripts/sdk-release-action.mjs"

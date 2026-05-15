@@ -28,6 +28,16 @@ const requestedRcBranch =
   "";
 const configPath = resolve(repoRoot, process.env.SDK_RELEASE_CONFIG ?? ".github/sdk-release.yml");
 const config = normalizeConfig(readYamlConfig(configPath));
+const releasePleaseConfigPath = resolve(
+  repoRoot,
+  process.env.SDK_RELEASE_RELEASE_PLEASE_CONFIG ?? ".github/release-please-config.json"
+);
+const releasePleaseManifestPath = resolve(
+  repoRoot,
+  process.env.SDK_RELEASE_RELEASE_PLEASE_MANIFEST ?? ".release-please-manifest.json"
+);
+const releasePleaseConfig = JSON.parse(readFileSync(releasePleaseConfigPath, "utf8"));
+const releasePleaseManifest = JSON.parse(readFileSync(releasePleaseManifestPath, "utf8"));
 const releaseDir = resolve(repoRoot, ".sdk-release");
 const releaseFile = resolve(releaseDir, "release.json");
 const distDir = resolve(repoRoot, "dist");
@@ -251,6 +261,8 @@ function publishFromMetadata(metadata, {
     `- Tag: \`${metadata.tag}\``,
     `- npm version: \`${metadata.npmVersion}\``,
     `- PyPI version: \`${metadata.pypiVersion}\``,
+    `- Release Please manifest baseline: \`${releasePleaseBaselineVersion()}\``,
+    `- Release Please PR refresh: \`${releasePleasePrRefreshState()}\``,
     `- npm artifact: \`${relativeToRepo(nodeArtifact)}\``,
     `- PyPI artifacts: ${pythonArtifacts.map((artifact) => `\`${relativeToRepo(artifact)}\``).join(", ")}`,
     `- npm publish model: Trusted Publisher OIDC with dist-tag \`${npmDistTag(metadata.channel)}\``,
@@ -536,16 +548,52 @@ function exposeRelease(metadata) {
 }
 
 function resolveNextBaseVersion() {
-  const packageJsonPath = resolve(repoRoot, config.packages.npm.path, "package.json");
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
-  const sanitized = packageJson.version.split("-")[0];
-  const parts = sanitized.split(".").map((part) => Number.parseInt(part, 10));
+  const parts = releasePleaseBaselineVersion()
+    .split(".")
+    .map((part) => Number.parseInt(part, 10));
   if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) {
-    throw new Error(`Unable to resolve next base version from ${packageJson.version}`);
+    throw new Error("Unable to resolve the Release Please manifest baseline version.");
   }
   parts[1] += 1;
   parts[2] = 0;
   return parts.join(".");
+}
+
+function releasePleaseBaselineVersion() {
+  const configuredPaths = Object.keys(releasePleaseConfig.packages ?? {});
+  if (configuredPaths.length === 0) {
+    throw new Error("Release Please config must define at least one package.");
+  }
+
+  const versions = configuredPaths.map((path) => {
+    const version = releasePleaseManifest[path];
+    if (!version) {
+      throw new Error(`Release Please manifest is missing a version for ${path}.`);
+    }
+    return version.split("-")[0];
+  });
+
+  return versions.sort(compareSemver).at(-1);
+}
+
+function releasePleasePrRefreshState() {
+  const refreshed = process.env.SDK_RELEASE_RELEASE_PLEASE_PRS_CREATED;
+  if (!refreshed) {
+    return "not-run-for-this-event";
+  }
+  return refreshed === "true" ? "created-or-updated" : "no-pr-change";
+}
+
+function compareSemver(left, right) {
+  const leftParts = left.split(".").map((part) => Number.parseInt(part, 10));
+  const rightParts = right.split(".").map((part) => Number.parseInt(part, 10));
+  for (let index = 0; index < 3; index += 1) {
+    const delta = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
+    if (delta !== 0) {
+      return delta;
+    }
+  }
+  return 0;
 }
 
 function renderChannelTag(channel, values) {

@@ -28,6 +28,8 @@ on:
 
 permissions:
   contents: write
+  issues: write
+  pull-requests: write
   id-token: write
 
 jobs:
@@ -54,7 +56,7 @@ jobs:
       - name: Install Python build tool
         run: python3 -m pip install build
 
-      - name: Run SDK release action simulation
-        uses: ./.github/actions/sdk-release-sim
+      - name: Run local SDK release action
+        uses: ./.github/actions/sdk-release-action
         with:
           config-file: .github/sdk-release.yml

@@ -1,0 +1,13 @@
+{
+  "include-v-in-tag": true,
+  "packages": {
+    "packages/node-sdk": {
+      "component": "node-sdk",
+      "release-type": "node"
+    },
+    "packages/python-sdk": {
+      "component": "python-sdk",
+      "release-type": "python"
+    }
+  }
+}
