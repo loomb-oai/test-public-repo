@@ -1,17 +1,37 @@
-name: Nightly Beta
+name: release-bot
 
 on:
-  schedule:
-    - cron: "0 18 * * *"
-      timezone: "America/Los_Angeles"
   workflow_dispatch:
+    inputs:
+      operation:
+        description: "Release operation to run immediately"
+        required: true
+        type: choice
+        options:
+          - alpha
+          - beta
+          - cut-rc
+          - final
+      rc-branch:
+        description: "Required for final releases, e.g. rc/0.2.0"
+        required: false
+        type: string
+  repository_dispatch:
+    types:
+      - sdk-release
+  push:
+    branches:
+      - "rc/**"
+  release:
+    types:
+      - published
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
-  beta:
-    if: github.repository == 'loomb-oai/test-private-repo'
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -34,10 +54,7 @@ jobs:
       - name: Install Python build tool
         run: python3 -m pip install build
 
-      - name: Run sample SDK release action
+      - name: Run SDK release action simulation
         uses: ./.github/actions/sdk-release-sim
         with:
-          mode: beta
-          config: sdk-release.config.json
-          public-repo-token: ${{ secrets.PUBLIC_REPO_TOKEN }}
-          private-repo-token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .github/sdk-release.json

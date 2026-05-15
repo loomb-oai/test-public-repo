@@ -2,7 +2,6 @@ node_modules/
 dist/
 .venv/
 .sdk-release/npm-cache/
-.sdk-release/private-mirror.git/
 packages/node-sdk/build/
 packages/python-sdk/build/
 packages/python-sdk/src/*.egg-info/
