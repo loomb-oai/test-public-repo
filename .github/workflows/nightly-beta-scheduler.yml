@@ -6,27 +6,20 @@ on:
       timezone: "America/Los_Angeles"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Create GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.SDK_RELEASE_APP_ID }}
-          private-key: ${{ secrets.SDK_RELEASE_APP_PRIVATE_KEY }}
-          owner: loomb-oai
-          repositories: test-private-repo
-
       - name: Trigger release-bot beta
         uses: actions/github-script@v8
         with:
-          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             await github.rest.repos.createDispatchEvent({
-              owner: "loomb-oai",
-              repo: "test-private-repo",
+              owner: context.repo.owner,
+              repo: context.repo.repo,
               event_type: "sdk-release",
               client_payload: {
                 operation: "beta",

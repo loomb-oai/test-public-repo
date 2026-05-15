@@ -27,12 +27,12 @@ The integrator-facing surface is now intentionally small:
 
 ## Control Plane
 
-The near-term sample uses tiny scheduler workflows plus a GitHub App token:
+The near-term sample uses tiny scheduler workflows inside the private repo:
 
 1. `nightly-beta-scheduler.yml` runs at 6:00 PM Pacific.
 2. `weekly-rc-scheduler.yml` runs every Monday at 00:01 Pacific.
-3. Each scheduler mints a GitHub App installation token and dispatches the
-   private repo workflow with:
+3. Each scheduler uses the workflow `GITHUB_TOKEN` to dispatch the same repo's
+   `release-bot` workflow with:
 
 ```json
 {
@@ -49,8 +49,8 @@ The near-term sample uses tiny scheduler workflows plus a GitHub App token:
 5. The public release event wakes the same `release-bot` workflow in the public
    mirror, where the action models npm and PyPI publication.
 
-This keeps scheduling native to GitHub Actions while keeping cross-repo auth on
-the GitHub App boundary.
+This keeps scheduling native to GitHub Actions. The GitHub App is still the
+boundary for actual cross-repo work such as private-to-public mirroring.
 
 ## Lifecycle
 
@@ -127,8 +127,6 @@ The public mirror is the registry publish surface:
 
 The App replaces any long-lived cross-repo token. It should:
 
-- mint installation tokens for the scheduler workflows
-- authorize `repository_dispatch` into the private repo
 - observe private release tags or equivalent release-ready signals
 - mirror refs into the public repo
 - create the public GitHub Release that triggers registry publishing
@@ -151,8 +149,8 @@ The App replaces any long-lived cross-repo token. It should:
 This is not a real package publisher. It is a visual model of the intended
 contract:
 
-- scheduler workflows own the recurring wake-ups
-- the GitHub App owns cross-repo GitHub operations and dispatch authorization
+- scheduler workflows own the recurring wake-ups and same-repo dispatch
+- the GitHub App owns cross-repo GitHub operations
 - the workflow is a stable CI entrypoint
 - the repo config owns release policy
 - the action owns event routing, build orchestration, and registry execution
