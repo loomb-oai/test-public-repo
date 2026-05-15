@@ -1,26 +1,30 @@
-name: Publish Merged Demo Release
+name: Refresh RC
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
-      - main
+      - "rc/**"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  publish:
-    if: >-
-      github.repository == 'loomb-oai/test-private-repo' &&
-      github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.head.ref, 'release/v')
+  refresh_rc:
+    if: github.repository == 'loomb-oai/test-private-repo'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout merged release state
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set up Node for npm Trusted Publishing
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -30,11 +34,10 @@ jobs:
       - name: Install Python build tool
         run: python3 -m pip install build
 
-      - name: Run simulated SDK release action
-        id: release
+      - name: Run sample SDK release action
         uses: ./.github/actions/sdk-release-sim
         with:
-          mode: publish
+          mode: refresh-rc
           config: sdk-release.config.json
           public-repo-token: ${{ secrets.PUBLIC_REPO_TOKEN }}
           private-repo-token: ${{ secrets.GITHUB_TOKEN }}

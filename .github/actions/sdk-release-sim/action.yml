@@ -3,7 +3,7 @@ description: "Simulates release preparation and publication for a monorepo."
 
 inputs:
   mode:
-    description: "prepare or publish"
+    description: "prepare, publish, alpha, beta, cut-rc, refresh-rc, final, or registry-publish"
     required: true
   version:
     description: "Release version used during prepare mode"
@@ -17,6 +17,9 @@ inputs:
     required: false
   private-repo-token:
     description: "Token with read access to the private repository for mirror clones"
+    required: false
+  release-tag:
+    description: "Release tag used by registry-publish mode"
     required: false
 
 outputs:
@@ -41,5 +44,6 @@ runs:
         SDK_RELEASE_CONFIG: ${{ inputs.config }}
         SDK_RELEASE_PUBLIC_REPO_TOKEN: ${{ inputs.public-repo-token }}
         SDK_RELEASE_PRIVATE_REPO_TOKEN: ${{ inputs.private-repo-token }}
+        SDK_RELEASE_RELEASE_TAG: ${{ inputs.release-tag }}
         GH_TOKEN: ${{ inputs.public-repo-token }}
       run: node "$GITHUB_WORKSPACE/scripts/sdk-release-sim.mjs"

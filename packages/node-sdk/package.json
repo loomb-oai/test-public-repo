@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "Demo Node package for the SDK release action simulation.",
   "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loomb-oai/test-public-repo.git"
+  },
   "files": [
     "src",
     "README.md"

@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   prepare:
+    if: github.repository == 'loomb-oai/test-private-repo'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout private repository
@@ -50,4 +51,3 @@ jobs:
             --body "Prepared by the local SDK release action simulation." \
             --base main \
             --head "release/v${VERSION}"
-

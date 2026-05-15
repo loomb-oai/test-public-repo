@@ -1,0 +1,46 @@
+name: Final Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      rc_branch:
+        description: "RC branch to finalize, e.g. rc/0.2.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  final:
+    if: github.repository == 'loomb-oai/test-private-repo'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout selected RC branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.rc_branch }}
+          fetch-depth: 0
+
+      - name: Set up Node for npm Trusted Publishing
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python build tool
+        run: python3 -m pip install build
+
+      - name: Run sample SDK release action
+        uses: ./.github/actions/sdk-release-sim
+        with:
+          mode: final
+          config: sdk-release.config.json
+          public-repo-token: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          private-repo-token: ${{ secrets.GITHUB_TOKEN }}

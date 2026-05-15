@@ -3,6 +3,66 @@
   "publicRepository": "loomb-oai/test-public-repo",
   "publicRepositoryStrategy": "mirror",
   "releaseTagFormat": "v{version}",
+  "channels": {
+    "alpha": {
+      "sourceBranch": "main",
+      "tagPattern": "v{version}-alpha.{date}.{sequence}",
+      "npmDistTag": "alpha",
+      "pypiPhase": "alpha",
+      "trigger": "manual"
+    },
+    "beta": {
+      "sourceBranch": "main",
+      "tagPattern": "v{version}-beta.{date}",
+      "npmDistTag": "beta",
+      "pypiPhase": "beta",
+      "trigger": "scheduled",
+      "onlyIfChanged": true
+    },
+    "rc": {
+      "sourceBranch": "main",
+      "branchPattern": "rc/{version}",
+      "tagPattern": "v{version}-rc.{iteration}",
+      "npmDistTag": "rc",
+      "pypiPhase": "rc",
+      "trigger": "weekly-cut-and-refresh"
+    },
+    "production": {
+      "sourceBranchPattern": "rc/{version}",
+      "tagPattern": "v{version}",
+      "npmDistTag": "latest",
+      "pypiPhase": "final",
+      "trigger": "manual"
+    }
+  },
+  "publishing": {
+    "mode": "simulate",
+    "trustedPublisherSurface": "public-mirror",
+    "npm": {
+      "strategy": "trusted-publisher",
+      "workflowFiles": [
+        "public-registry-publish.yml"
+      ],
+      "requires": [
+        "GitHub-hosted runner",
+        "Node >= 22.14.0",
+        "npm >= 11.5.1",
+        "permissions.id-token: write",
+        "package repository.url exactly matches the public GitHub repository configured in npm"
+      ]
+    },
+    "pypi": {
+      "strategy": "trusted-publisher",
+      "workflowFiles": [
+        "public-registry-publish.yml"
+      ],
+      "requires": [
+        "permissions.id-token: write",
+        "PyPI Trusted Publisher configured for the repository/workflow/environment"
+      ],
+      "recommendedAction": "pypa/gh-action-pypi-publish@release/v1"
+    }
+  },
   "packages": {
     "npm": {
       "id": "node-sdk",
