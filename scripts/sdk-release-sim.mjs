@@ -26,8 +26,8 @@ const requestedRcBranch =
   workflowInputs["rc-branch"] ??
   workflowInputs.rc_branch ??
   "";
-const configPath = resolve(repoRoot, process.env.SDK_RELEASE_CONFIG ?? ".github/sdk-release.json");
-const config = JSON.parse(readFileSync(configPath, "utf8"));
+const configPath = resolve(repoRoot, process.env.SDK_RELEASE_CONFIG ?? ".github/sdk-release.yml");
+const config = normalizeConfig(readYamlConfig(configPath));
 const releaseDir = resolve(repoRoot, ".sdk-release");
 const releaseFile = resolve(releaseDir, "release.json");
 const distDir = resolve(repoRoot, "dist");
@@ -721,6 +721,77 @@ function listFiles(dir) {
 
 function relativeToRepo(path) {
   return path.replace(`${repoRoot}/`, "");
+}
+
+function readYamlConfig(path) {
+  const rubyScript = [
+    "require 'json'",
+    "require 'yaml'",
+    "puts JSON.generate(YAML.safe_load(File.read(ARGV.fetch(0)), permitted_classes: [], aliases: false))"
+  ].join("; ");
+
+  const serialized = execFileSync("ruby", ["-e", rubyScript, path], {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+
+  return JSON.parse(serialized);
+}
+
+function normalizeConfig(raw) {
+  const channels = raw.channels ?? {};
+  const publishing = raw.publishing ?? {};
+  const packages = raw.packages ?? {};
+
+  return {
+    repositories: raw.repositories,
+    schedules: raw.schedules,
+    channels: {
+      alpha: normalizeChannel(channels.alpha),
+      beta: normalizeChannel(channels.beta),
+      rc: normalizeChannel(channels.rc),
+      production: normalizeChannel(channels.production)
+    },
+    publishing: {
+      mode: publishing.mode,
+      trustedPublisherSurface: publishing["trusted-publisher-surface"],
+      npm: normalizePublishing(publishing.npm),
+      pypi: normalizePublishing(publishing.pypi)
+    },
+    packages: {
+      npm: normalizePackage(packages.npm),
+      pypi: normalizePackage(packages.pypi)
+    }
+  };
+}
+
+function normalizeChannel(channel = {}) {
+  return {
+    sourceBranch: channel["source-branch"],
+    sourceBranchPattern: channel["source-branch-pattern"],
+    branchPattern: channel["branch-pattern"],
+    tagPattern: channel["tag-pattern"],
+    npmDistTag: channel["npm-dist-tag"],
+    pypiPhase: channel["pypi-phase"],
+    onlyIfChanged: channel["only-if-changed"] ?? false
+  };
+}
+
+function normalizePublishing(publishing = {}) {
+  return {
+    strategy: publishing.strategy,
+    workflowFile: publishing["workflow-file"],
+    requires: publishing.requires ?? [],
+    recommendedAction: publishing["recommended-action"]
+  };
+}
+
+function normalizePackage(pkg = {}) {
+  return {
+    id: pkg.id,
+    path: pkg.path,
+    packageName: pkg["package-name"]
+  };
 }
 
 function readGithubEvent() {

@@ -9,7 +9,7 @@ inputs:
   config-file:
     description: "Path to the repo-owned SDK release configuration"
     required: false
-    default: ".github/sdk-release.json"
+    default: ".github/sdk-release.yml"
   release-tag:
     description: "Optional local override for registry-publish simulation."
     required: false

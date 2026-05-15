@@ -16,7 +16,7 @@ The integrator-facing surface is now intentionally small:
 
 - `.github/workflows/release-bot.yml`
   - the copy-paste workflow entrypoint
-- `.github/sdk-release.json`
+- `.github/sdk-release.yml`
   - repo-owned release policy, schedules, package definitions, and registry settings
 - `.github/actions/sdk-release-sim`
   - a local stand-in for the future hosted action
@@ -25,7 +25,7 @@ The integrator-facing surface is now intentionally small:
 
 The GitHub App is the cross-repo control plane:
 
-1. It reads `.github/sdk-release.json` from the private repo default branch.
+1. It reads `.github/sdk-release.yml` from the private repo default branch.
 2. It schedules named jobs such as `nightly-beta` and `weekly-rc`.
 3. When a schedule fires, it dispatches the private repo workflow with:
 
@@ -51,7 +51,7 @@ the long-running GitHub App scheduler service itself.
 
 ```mermaid
 flowchart TD
-  A[".github/sdk-release.json"] --> B["GitHub App reads schedules"]
+  A[".github/sdk-release.yml"] --> B["GitHub App reads schedules"]
   B --> C["repository_dispatch: beta"]
   B --> D["repository_dispatch: cut-rc"]
   E["Manual workflow dispatch"] --> F["alpha or final"]
@@ -68,23 +68,19 @@ flowchart TD
 
 ## Repo-Owned Schedule Config
 
-Schedules live in `.github/sdk-release.json`, not in workflow cron syntax:
+Schedules live in `.github/sdk-release.yml`, not in workflow cron syntax:
 
-```json
-{
-  "schedules": {
-    "nightly-beta": {
-      "operation": "beta",
-      "cron": "0 18 * * *",
-      "timezone": "America/Los_Angeles"
-    },
-    "weekly-rc": {
-      "operation": "cut-rc",
-      "cron": "1 0 * * 1",
-      "timezone": "America/Los_Angeles"
-    }
-  }
-}
+```yaml
+schedules:
+  nightly-beta:
+    operation: beta
+    cron: "0 18 * * *"
+    timezone: America/Los_Angeles
+
+  weekly-rc:
+    operation: cut-rc
+    cron: "1 0 * * 1"
+    timezone: America/Los_Angeles
 ```
 
 The App can refresh its schedule table on config-file pushes and reconcile it
@@ -127,7 +123,7 @@ The public mirror is the registry publish surface:
 
 The App replaces any long-lived cross-repo token. It should:
 
-- read `.github/sdk-release.json`
+- read `.github/sdk-release.yml`
 - track schedules from the default branch
 - dispatch `repository_dispatch` events into the private repo
 - observe private release tags or equivalent release-ready signals
@@ -136,7 +132,7 @@ The App replaces any long-lived cross-repo token. It should:
 
 ## How To Read The Demo
 
-1. Start with `.github/sdk-release.json`.
+1. Start with `.github/sdk-release.yml`.
 2. Read `.github/workflows/release-bot.yml`.
 3. Follow `scripts/sdk-release-sim.mjs` to see how one workflow run resolves:
    - manual workflow dispatches

@@ -1,0 +1,75 @@
+repositories:
+  private: loomb-oai/test-private-repo
+  public: loomb-oai/test-public-repo
+  strategy: mirror
+
+schedules:
+  nightly-beta:
+    operation: beta
+    cron: "0 18 * * *"
+    timezone: America/Los_Angeles
+
+  weekly-rc:
+    operation: cut-rc
+    cron: "1 0 * * 1"
+    timezone: America/Los_Angeles
+
+channels:
+  alpha:
+    source-branch: main
+    tag-pattern: "v{version}-alpha.{date}.{sequence}"
+    npm-dist-tag: alpha
+    pypi-phase: alpha
+
+  beta:
+    source-branch: main
+    tag-pattern: "v{version}-beta.{date}"
+    npm-dist-tag: beta
+    pypi-phase: beta
+    only-if-changed: true
+
+  rc:
+    source-branch: main
+    branch-pattern: "rc/{version}"
+    tag-pattern: "v{version}-rc.{iteration}"
+    npm-dist-tag: rc
+    pypi-phase: rc
+
+  production:
+    source-branch-pattern: "rc/{version}"
+    tag-pattern: "v{version}"
+    npm-dist-tag: latest
+    pypi-phase: final
+
+publishing:
+  mode: simulate
+  trusted-publisher-surface: public-mirror
+
+  npm:
+    strategy: trusted-publisher
+    workflow-file: release-bot.yml
+    requires:
+      - GitHub-hosted runner
+      - Node >= 22.14.0
+      - npm >= 11.5.1
+      - permissions.id-token: write
+      - package repository.url exactly matches the public GitHub repository configured in npm
+
+  pypi:
+    strategy: trusted-publisher
+    workflow-file: release-bot.yml
+    requires:
+      - permissions.id-token: write
+      - PyPI Trusted Publisher configured for the repository/workflow/environment
+    recommended-action: pypa/gh-action-pypi-publish@release/v1
+
+packages:
+  npm:
+    id: node-sdk
+    path: packages/node-sdk
+    package-name: "@demo/node-sdk"
+
+  pypi:
+    id: python-sdk
+    path: packages/python-sdk
+    package-name: demo-python-sdk

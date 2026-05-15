@@ -57,4 +57,4 @@ jobs:
       - name: Run SDK release action simulation
         uses: ./.github/actions/sdk-release-sim
         with:
-          config-file: .github/sdk-release.json
+          config-file: .github/sdk-release.yml
