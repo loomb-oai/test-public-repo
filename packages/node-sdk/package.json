@@ -1,0 +1,14 @@
+{
+  "name": "@demo/node-sdk",
+  "version": "0.1.0",
+  "description": "Demo Node package for the SDK release action simulation.",
+  "main": "src/index.js",
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "node ./scripts/build.mjs"
+  }
+}

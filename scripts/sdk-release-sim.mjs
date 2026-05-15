@@ -1,0 +1,351 @@
+import { execFileSync } from "node:child_process";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
+import { basename, resolve } from "node:path";
+
+const repoRoot = process.env.GITHUB_WORKSPACE ?? process.cwd();
+const mode = process.env.SDK_RELEASE_MODE;
+const explicitVersion = process.env.SDK_RELEASE_VERSION ?? "";
+const configPath = resolve(repoRoot, process.env.SDK_RELEASE_CONFIG ?? "sdk-release.config.json");
+const config = JSON.parse(readFileSync(configPath, "utf8"));
+const releaseDir = resolve(repoRoot, ".sdk-release");
+const releaseFile = resolve(releaseDir, "release.json");
+const distDir = resolve(repoRoot, "dist");
+const publicToken = process.env.SDK_RELEASE_PUBLIC_REPO_TOKEN ?? "";
+const privateToken = process.env.SDK_RELEASE_PRIVATE_REPO_TOKEN ?? "";
+const summaryFile = process.env.GITHUB_STEP_SUMMARY;
+const outputFile = process.env.GITHUB_OUTPUT;
+
+if (mode !== "prepare" && mode !== "publish") {
+  throw new Error(`Unsupported mode: ${mode}`);
+}
+
+if (mode === "prepare") {
+  prepareRelease(explicitVersion);
+} else {
+  publishRelease();
+}
+
+function prepareRelease(version) {
+  assertSemver(version);
+  mkdirSync(releaseDir, { recursive: true });
+
+  updateNodeVersion(version);
+  updatePythonVersion(version);
+  updateChangelog(version);
+
+  const releaseTag = formatTag(version);
+  const releaseMetadata = {
+    version,
+    tag: releaseTag,
+    preparedAt: new Date().toISOString(),
+    packages: config.packages
+  };
+
+  writeFileSync(releaseFile, `${JSON.stringify(releaseMetadata, null, 2)}\n`, "utf8");
+  setOutput("release-version", version);
+  setOutput("release-tag", releaseTag);
+  writeSummary([
+    "# Release prepared",
+    "",
+    `- Version: \`${version}\``,
+    `- Tag: \`${releaseTag}\``,
+    `- Metadata: \`.sdk-release/release.json\``,
+    "",
+    "The workflow will commit these changes to a release branch and open a PR."
+  ]);
+}
+
+function publishRelease() {
+  if (!existsSync(releaseFile)) {
+    throw new Error("Missing .sdk-release/release.json. Publish mode expects a merged release PR.");
+  }
+
+  const metadata = JSON.parse(readFileSync(releaseFile, "utf8"));
+  const version = metadata.version;
+  const releaseTag = metadata.tag ?? formatTag(version);
+
+  assertSemver(version);
+  rmSync(distDir, { recursive: true, force: true });
+  mkdirSync(resolve(distDir, "npm"), { recursive: true });
+  mkdirSync(resolve(distDir, "pypi"), { recursive: true });
+
+  const nodeArtifact = buildNodeArtifact();
+  const pythonArtifacts = buildPythonArtifacts();
+  const manifestPath = writeReleaseManifest({
+    version,
+    releaseTag,
+    nodeArtifact,
+    pythonArtifacts
+  });
+
+  const publicResult = promoteToPublicRepository({
+    version,
+    releaseTag,
+    nodeArtifact,
+    pythonArtifacts,
+    manifestPath
+  });
+
+  setOutput("release-version", version);
+  setOutput("release-tag", releaseTag);
+  setOutput("public-release-url", publicResult.releaseUrl ?? "");
+  writeSummary([
+    "# Release published",
+    "",
+    `- Version: \`${version}\``,
+    `- Tag: \`${releaseTag}\``,
+    `- npm artifact: \`${relativeToRepo(nodeArtifact)}\``,
+    `- PyPI artifacts: ${pythonArtifacts.map((artifact) => `\`${relativeToRepo(artifact)}\``).join(", ")}`,
+    `- npm publish: simulated \`${config.packages.npm.packageName}@${version}\``,
+    `- PyPI publish: simulated \`${config.packages.pypi.packageName}==${version}\``,
+    `- Public repo strategy: \`${config.publicRepositoryStrategy}\``,
+    publicResult.releaseUrl ? `- Public GitHub Release: ${publicResult.releaseUrl}` : "- Public GitHub Release: skipped"
+  ]);
+}
+
+function updateNodeVersion(version) {
+  const packageJsonPath = resolve(repoRoot, config.packages.npm.path, "package.json");
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+  packageJson.version = version;
+  writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, "utf8");
+}
+
+function updatePythonVersion(version) {
+  const pyprojectPath = resolve(repoRoot, config.packages.pypi.path, "pyproject.toml");
+  const initPath = resolve(repoRoot, config.packages.pypi.path, "src/demo_python_sdk/__init__.py");
+
+  const pyproject = readFileSync(pyprojectPath, "utf8").replace(
+    /^version = ".*"$/m,
+    `version = "${version}"`
+  );
+  writeFileSync(pyprojectPath, pyproject, "utf8");
+
+  const initFile = readFileSync(initPath, "utf8").replace(
+    /^__version__ = ".*"$/m,
+    `__version__ = "${version}"`
+  );
+  writeFileSync(initPath, initFile, "utf8");
+}
+
+function updateChangelog(version) {
+  const changelogPath = resolve(repoRoot, "CHANGELOG.md");
+  const current = readFileSync(changelogPath, "utf8");
+  const date = new Date().toISOString().slice(0, 10);
+  const section = [
+    `## ${formatTag(version)} - ${date}`,
+    "",
+    "- Demo release generated by the local SDK release simulation.",
+    ""
+  ].join("\n");
+
+  const updated = current.replace("## Unreleased\n\n", `## Unreleased\n\n${section}`);
+  writeFileSync(changelogPath, updated, "utf8");
+}
+
+function buildNodeArtifact() {
+  const packageDir = resolve(repoRoot, config.packages.npm.path);
+  const npmEnv = {
+    ...process.env,
+    npm_config_cache: resolve(releaseDir, "npm-cache")
+  };
+
+  execFileSync("npm", ["run", "build"], {
+    cwd: packageDir,
+    stdio: "inherit",
+    env: npmEnv
+  });
+  const npmDist = resolve(distDir, "npm");
+  const output = execFileSync("npm", ["pack", "--pack-destination", npmDist], {
+    cwd: packageDir,
+    encoding: "utf8",
+    env: npmEnv
+  }).trim();
+  return resolve(npmDist, output.split("\n").at(-1));
+}
+
+function buildPythonArtifacts() {
+  const packageDir = resolve(repoRoot, config.packages.pypi.path);
+  const pypiDist = resolve(distDir, "pypi");
+  execFileSync("python3", ["-m", "build", "--outdir", pypiDist], {
+    cwd: packageDir,
+    stdio: "inherit"
+  });
+
+  return listFiles(pypiDist).map((file) => resolve(pypiDist, file));
+}
+
+function writeReleaseManifest({ version, releaseTag, nodeArtifact, pythonArtifacts }) {
+  const manifestPath = resolve(distDir, "release-manifest.json");
+  const payload = {
+    version,
+    tag: releaseTag,
+    npm: {
+      packageName: config.packages.npm.packageName,
+      artifact: basename(nodeArtifact)
+    },
+    pypi: {
+      packageName: config.packages.pypi.packageName,
+      artifacts: pythonArtifacts.map((artifact) => basename(artifact))
+    }
+  };
+
+  writeFileSync(manifestPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  return manifestPath;
+}
+
+function promoteToPublicRepository({
+  version,
+  releaseTag,
+  nodeArtifact,
+  pythonArtifacts,
+  manifestPath
+}) {
+  if (!publicToken) {
+    console.log("No PUBLIC_REPO_TOKEN provided. Skipping public repository mirroring.");
+    return {};
+  }
+
+  const tempRoot = resolve(repoRoot, ".sdk-release", "private-mirror.git");
+  rmSync(tempRoot, { recursive: true, force: true });
+
+  const privateRepoUrl = privateToken
+    ? `https://x-access-token:${privateToken}@github.com/${config.privateRepository}.git`
+    : `https://github.com/${config.privateRepository}.git`;
+  const publicUrl = `https://x-access-token:${publicToken}@github.com/${config.publicRepository}.git`;
+  ensureReleaseTagExists(releaseTag);
+  execFileSync("git", ["clone", "--mirror", privateRepoUrl, tempRoot], {
+    stdio: "inherit"
+  });
+  execFileSync("git", ["remote", "set-url", "--push", "origin", publicUrl], {
+    cwd: tempRoot,
+    stdio: "inherit"
+  });
+  execFileSync("git", ["push", "--mirror"], { cwd: tempRoot, stdio: "inherit" });
+
+  const releaseUrl = createOrUpdatePublicGithubRelease({
+    version,
+    releaseTag,
+    nodeArtifact,
+    pythonArtifacts,
+    manifestPath
+  });
+
+  return { releaseUrl };
+}
+
+function ensureReleaseTagExists(releaseTag) {
+  try {
+    execFileSync("git", ["rev-parse", "--verify", `refs/tags/${releaseTag}`], {
+      cwd: repoRoot,
+      stdio: "ignore"
+    });
+  } catch {
+    execFileSync("git", ["tag", releaseTag], { cwd: repoRoot, stdio: "inherit" });
+  }
+
+  try {
+    execFileSync("git", ["push", "origin", `refs/tags/${releaseTag}`], {
+      cwd: repoRoot,
+      stdio: "inherit"
+    });
+  } catch {
+    console.log(`Tag ${releaseTag} already exists on origin or could not be pushed again.`);
+  }
+}
+
+function createOrUpdatePublicGithubRelease({
+  version,
+  releaseTag,
+  nodeArtifact,
+  pythonArtifacts,
+  manifestPath
+}) {
+  const commonArgs = [
+    "--repo",
+    config.publicRepository,
+    "--title",
+    `${releaseTag} demo release`,
+    "--notes",
+    `Simulated SDK release for version ${version}.`
+  ];
+
+  try {
+    execFileSync("gh", ["release", "view", releaseTag, "--repo", config.publicRepository], {
+      stdio: "ignore"
+    });
+    execFileSync(
+      "gh",
+      [
+        "release",
+        "upload",
+        releaseTag,
+        nodeArtifact,
+        ...pythonArtifacts,
+        manifestPath,
+        "--clobber",
+        "--repo",
+        config.publicRepository
+      ],
+      { stdio: "inherit" }
+    );
+  } catch {
+    execFileSync(
+      "gh",
+      [
+        "release",
+        "create",
+        releaseTag,
+        nodeArtifact,
+        ...pythonArtifacts,
+        manifestPath,
+        ...commonArgs
+      ],
+      { stdio: "inherit" }
+    );
+  }
+
+  return `https://github.com/${config.publicRepository}/releases/tag/${releaseTag}`;
+}
+
+function formatTag(version) {
+  return config.releaseTagFormat.replace("{version}", version);
+}
+
+function assertSemver(version) {
+  if (!/^\d+\.\d+\.\d+$/.test(version)) {
+    throw new Error(`Expected a simple x.y.z version, received: ${version}`);
+  }
+}
+
+function setOutput(name, value) {
+  if (!outputFile) {
+    return;
+  }
+  appendFileSync(outputFile, `${name}=${value}\n`, "utf8");
+}
+
+function writeSummary(lines) {
+  if (!summaryFile) {
+    return;
+  }
+  appendFileSync(summaryFile, `${lines.join("\n")}\n`, "utf8");
+}
+
+function listFiles(dir) {
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+    .sort();
+}
+
+function relativeToRepo(path) {
+  return path.replace(`${repoRoot}/`, "");
+}

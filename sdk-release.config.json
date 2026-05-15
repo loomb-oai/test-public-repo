@@ -1,0 +1,18 @@
+{
+  "privateRepository": "loomb-oai/test-private-repo",
+  "publicRepository": "loomb-oai/test-public-repo",
+  "publicRepositoryStrategy": "mirror",
+  "releaseTagFormat": "v{version}",
+  "packages": {
+    "npm": {
+      "id": "node-sdk",
+      "path": "packages/node-sdk",
+      "packageName": "@demo/node-sdk"
+    },
+    "pypi": {
+      "id": "python-sdk",
+      "path": "packages/python-sdk",
+      "packageName": "demo-python-sdk"
+    }
+  }
+}

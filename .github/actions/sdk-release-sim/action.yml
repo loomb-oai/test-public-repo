@@ -1,0 +1,45 @@
+name: "SDK Release Action Simulation"
+description: "Simulates release preparation and publication for a monorepo."
+
+inputs:
+  mode:
+    description: "prepare or publish"
+    required: true
+  version:
+    description: "Release version used during prepare mode"
+    required: false
+  config:
+    description: "Path to the sample release config"
+    required: false
+    default: "sdk-release.config.json"
+  public-repo-token:
+    description: "Token with write access to the public repository"
+    required: false
+  private-repo-token:
+    description: "Token with read access to the private repository for mirror clones"
+    required: false
+
+outputs:
+  release-version:
+    description: "Version handled by the simulated release action"
+    value: ${{ steps.run.outputs.release-version }}
+  release-tag:
+    description: "Tag handled by the simulated release action"
+    value: ${{ steps.run.outputs.release-tag }}
+  public-release-url:
+    description: "Public GitHub Release URL when publish mode creates one"
+    value: ${{ steps.run.outputs.public-release-url }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: run
+      shell: bash
+      env:
+        SDK_RELEASE_MODE: ${{ inputs.mode }}
+        SDK_RELEASE_VERSION: ${{ inputs.version }}
+        SDK_RELEASE_CONFIG: ${{ inputs.config }}
+        SDK_RELEASE_PUBLIC_REPO_TOKEN: ${{ inputs.public-repo-token }}
+        SDK_RELEASE_PRIVATE_REPO_TOKEN: ${{ inputs.private-repo-token }}
+        GH_TOKEN: ${{ inputs.public-repo-token }}
+      run: node "$GITHUB_WORKSPACE/scripts/sdk-release-sim.mjs"

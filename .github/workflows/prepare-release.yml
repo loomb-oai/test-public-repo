@@ -1,0 +1,53 @@
+name: Prepare Demo Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Simple semver version such as 0.2.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run simulated SDK release action
+        id: release
+        uses: ./.github/actions/sdk-release-sim
+        with:
+          mode: prepare
+          version: ${{ inputs.version }}
+          config: sdk-release.config.json
+
+      - name: Commit prepared release
+        env:
+          VERSION: ${{ steps.release.outputs.release-version }}
+        run: |
+          git config user.name "sdk-release-demo[bot]"
+          git config user.email "sdk-release-demo[bot]@users.noreply.github.com"
+          git checkout -b "release/v${VERSION}"
+          git add .
+          git commit -m "chore(release): prepare v${VERSION}"
+          git push origin "release/v${VERSION}"
+
+      - name: Open release pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.release.outputs.release-version }}
+        run: |
+          gh pr create \
+            --title "chore(release): v${VERSION}" \
+            --body "Prepared by the local SDK release action simulation." \
+            --base main \
+            --head "release/v${VERSION}"
+
