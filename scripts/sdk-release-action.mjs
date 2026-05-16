@@ -271,8 +271,8 @@ function publishFromMetadata(metadata, {
       ? `- GitHub App handoff: ${handoff.description}`
       : "- GitHub App handoff: already completed before the public release event",
     githubAppHandoff
-      ? `- Mirror strategy: \`${config.repositories.strategy}\` into \`${config.repositories.public}\``
-      : `- Publish surface: \`${config.repositories.public}\` release event`
+      ? mirrorSummaryLine()
+      : `- Publish surface: \`${publishingRepository()}\` release event`
   ]);
 }
 
@@ -704,10 +704,39 @@ function shouldSkipForRepository(releaseMode) {
   }
 
   if (releaseMode === "registry-publish") {
-    return githubRepository !== config.repositories.public;
+    return githubRepository !== publishingRepository();
   }
 
-  return githubRepository !== config.repositories.private;
+  return githubRepository !== config.repository.source;
+}
+
+function releaseRepository() {
+  return repositoryForTarget(config.releases.github.target);
+}
+
+function publishingRepository() {
+  return repositoryForTarget(config.publishing.surface);
+}
+
+function repositoryForTarget(target) {
+  switch (target) {
+    case "source":
+      return config.repository.source;
+    case "mirror":
+      if (!config.repository.mirror.enabled) {
+        throw new Error("Configuration targets the mirror repo, but repository.mirror.enabled is false.");
+      }
+      return config.repository.mirror.target;
+    default:
+      throw new Error(`Unsupported repository target: ${target}`);
+  }
+}
+
+function mirrorSummaryLine() {
+  if (!config.repository.mirror.enabled) {
+    return `- GitHub Release target: \`${releaseRepository()}\``;
+  }
+  return `- Mirror strategy: \`${config.repository.mirror.strategy}\` into \`${config.repository.mirror.target}\``;
 }
 
 function currentBranch() {
@@ -792,7 +821,19 @@ function normalizeConfig(raw) {
   const packages = raw.packages ?? {};
 
   return {
-    repositories: raw.repositories,
+    repository: {
+      source: raw.repository?.source,
+      mirror: {
+        enabled: raw.repository?.mirror?.enabled ?? false,
+        target: raw.repository?.mirror?.target,
+        strategy: raw.repository?.mirror?.strategy ?? "mirror"
+      }
+    },
+    releases: {
+      github: {
+        target: raw.releases?.github?.target ?? "source"
+      }
+    },
     schedules: raw.schedules,
     channels: {
       alpha: normalizeChannel(channels.alpha),
@@ -802,7 +843,7 @@ function normalizeConfig(raw) {
     },
     publishing: {
       mode: publishing.mode,
-      trustedPublisherSurface: publishing["trusted-publisher-surface"],
+      surface: publishing.surface ?? "source",
       npm: normalizePublishing(publishing.npm),
       pypi: normalizePublishing(publishing.pypi)
     },

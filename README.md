@@ -4,7 +4,7 @@ This repository models the intended integration shape for a future
 `sdk-release-action` plus a GitHub App control plane. The local action now
 wraps Release Please instead of standing alone as a fake version oracle.
 
-It uses two repositories:
+This sample uses two repositories:
 
 - `loomb-oai/test-private-repo`
   - source of truth for daily development
@@ -12,6 +12,9 @@ It uses two repositories:
 - `loomb-oai/test-public-repo`
   - exact Git mirror of the private repository
   - owns the public GitHub Release and Trusted Publisher registry run
+
+That topology is configurable. A single-repo integration can target the source
+repo for both GitHub Releases and registry publishing instead.
 
 The integrator-facing surface is now intentionally small:
 
@@ -137,7 +140,7 @@ The sample models:
 
 ## Trusted Publishing
 
-The public mirror is the registry publish surface:
+This sample chooses the mirror repo as the registry publish surface:
 
 - npm is modeled as Trusted Publishers with GitHub Actions OIDC.
 - PyPI is modeled as Trusted Publishing through
@@ -146,6 +149,39 @@ The public mirror is the registry publish surface:
   `loomb-oai/test-public-repo`, which matches the npm publisher repository.
 - The workflow carries `permissions.id-token: write` because the same mirrored
   workflow handles the public registry publish run.
+
+The repo config makes that explicit:
+
+```yaml
+repository:
+  source: loomb-oai/test-private-repo
+  mirror:
+    enabled: true
+    target: loomb-oai/test-public-repo
+
+releases:
+  github:
+    target: mirror
+
+publishing:
+  surface: mirror
+```
+
+A single-repo setup would instead use:
+
+```yaml
+repository:
+  source: some-org/sdk-repo
+  mirror:
+    enabled: false
+
+releases:
+  github:
+    target: source
+
+publishing:
+  surface: source
+```
 
 ## GitHub App Responsibilities
 

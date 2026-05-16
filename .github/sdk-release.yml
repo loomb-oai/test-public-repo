@@ -1,7 +1,13 @@
-repositories:
-  private: loomb-oai/test-private-repo
-  public: loomb-oai/test-public-repo
-  strategy: mirror
+repository:
+  source: loomb-oai/test-private-repo
+  mirror:
+    enabled: true
+    target: loomb-oai/test-public-repo
+    strategy: mirror
+
+releases:
+  github:
+    target: mirror
 
 schedules:
   nightly-beta:
@@ -43,7 +49,7 @@ channels:
 
 publishing:
   mode: simulate
-  trusted-publisher-surface: public-mirror
+  surface: mirror
 
   npm:
     strategy: trusted-publisher
@@ -53,7 +59,7 @@ publishing:
       - Node >= 22.14.0
       - npm >= 11.5.1
       - permissions.id-token: write
-      - package repository.url exactly matches the public GitHub repository configured in npm
+      - package repository.url exactly matches the GitHub repository configured in npm
 
   pypi:
     strategy: trusted-publisher
