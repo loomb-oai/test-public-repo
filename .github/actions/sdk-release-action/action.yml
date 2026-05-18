@@ -21,6 +21,9 @@ inputs:
   release-tag:
     description: "Optional local override for registry-publish runs."
     required: false
+  rc-branch:
+    description: "Optional RC branch override for final release runs."
+    required: false
   github-app-id:
     description: "GitHub App ID used for future cross-repo release operations."
     required: false
@@ -118,6 +121,7 @@ runs:
         SDK_RELEASE_RELEASE_PLEASE_PRS_CREATED: ${{ steps.release-please-plan.outputs.prs_created }}
         SDK_RELEASE_RELEASE_PLEASE_PRS: ${{ steps.release-please-plan.outputs.prs }}
         SDK_RELEASE_RELEASE_TAG: ${{ inputs.release-tag }}
+        SDK_RELEASE_RC_BRANCH: ${{ inputs.rc-branch }}
         SDK_RELEASE_GH_APP_ID: ${{ inputs.github-app-id }}
         SDK_RELEASE_GH_APP_PRIVATE_KEY: ${{ inputs.github-app-private-key }}
         SDK_RELEASE_GH_APP_TOKEN: ${{ steps.github-app-token.outputs.token }}

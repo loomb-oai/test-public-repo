@@ -19,7 +19,9 @@ repo for both GitHub Releases and registry publishing instead.
 The integrator-facing surface is now intentionally small:
 
 - `.github/workflows/release-bot.yml`
-  - the copy-paste workflow entrypoint
+  - the copy-paste workflow entrypoint that forwards into the reusable release workflow
+- `.github/workflows/sdk-release.yml`
+  - local reusable workflow standing in for the future hosted release workflow repository
 - `.github/workflows/nightly-beta-scheduler.yml`
   - daily cron wrapper that dispatches `release-bot`
 - `.github/workflows/weekly-rc-scheduler.yml`
@@ -32,6 +34,29 @@ The integrator-facing surface is now intentionally small:
   - Release Please manifest-mode package configuration
 - `.release-please-manifest.json`
   - Release Please released-version state for the sample packages
+
+In this sample, `release-bot.yml` calls the local reusable workflow:
+
+```yaml
+jobs:
+  release:
+    uses: ./.github/workflows/sdk-release.yml
+    with:
+      config-file: .github/sdk-release.yml
+    secrets: inherit
+```
+
+Once the release system lives in its own repository, that same integration
+shape becomes:
+
+```yaml
+jobs:
+  release:
+    uses: your-org/sdk-release-action/.github/workflows/release-bot.yml@v1
+    with:
+      config-file: .github/sdk-release.yml
+    secrets: inherit
+```
 
 ## Control Plane
 
@@ -270,14 +295,15 @@ contains:
 1. Start with `.github/sdk-release.yml`.
 2. Read the two scheduler workflows.
 3. Read `.github/workflows/release-bot.yml`.
-4. Follow `scripts/sdk-release-action.mjs` to see how one workflow run resolves:
+4. Read `.github/workflows/sdk-release.yml` to see the internal reusable workflow boundary.
+5. Follow `scripts/sdk-release-action.mjs` to see how one workflow run resolves:
    - manual workflow dispatches
    - scheduler `repository_dispatch` events
    - pushes to `rc/**`
    - mirrored release events
-5. Inspect `dist/release-manifest.json` after a run to see the npm/PyPI release
+6. Inspect `dist/release-manifest.json` after a run to see the npm/PyPI release
    payload that drives publish steps.
-6. Inspect `dist/mirror-propagation.json` to see the exact mirrored branch,
+7. Inspect `dist/mirror-propagation.json` to see the exact mirrored branch,
    tag, and target-release payload.
 
 ## What This Demonstrates
