@@ -17,9 +17,9 @@ const dispatchPayload = githubEvent.client_payload ?? {};
 const githubRefName = process.env.GITHUB_REF_NAME ?? refNameFromRef(process.env.GITHUB_REF ?? "");
 const mode = resolveMode(process.env.SDK_RELEASE_MODE ?? "auto");
 const explicitReleaseTag =
-  process.env.SDK_RELEASE_RELEASE_TAG ??
-  githubEvent.release?.tag_name ??
-  workflowInputs["release-tag"] ??
+  process.env.SDK_RELEASE_RELEASE_TAG ||
+  githubEvent.release?.tag_name ||
+  workflowInputs["release-tag"] ||
   "";
 const requestedRcBranch =
   process.env.SDK_RELEASE_RC_BRANCH ??
