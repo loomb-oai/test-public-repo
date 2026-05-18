@@ -81,6 +81,7 @@ runs:
         permission-contents: write
         permission-issues: write
         permission-pull-requests: write
+        permission-workflows: write
 
     - name: Refresh Release Please plan
       id: release-please-plan

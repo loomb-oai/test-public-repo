@@ -220,9 +220,13 @@ mirror-targeted release behavior is configured:
 - `SDK_RELEASE_GH_APP_ID`
 - `SDK_RELEASE_GH_APP_PRIVATE_KEY`
 
-The GitHub App needs to be installed on both repositories and must be able to
-read/write repository contents in the mirror target so the action can push refs
-and create Releases there.
+The GitHub App needs to be installed on both repositories. Its repository
+permissions should include:
+
+- `Contents: Read and write` so the action can push mirrored refs and create Releases
+- `Pull requests: Read and write` so Release Please can create or update release PRs
+- `Issues: Read and write` for the Release Please issue/comment surfaces it may use
+- `Workflows: Read and write` so mirrored pushes can update `.github/workflows/*`
 
 The local action now mints an installation token with
 `actions/create-github-app-token@v3`, then:
