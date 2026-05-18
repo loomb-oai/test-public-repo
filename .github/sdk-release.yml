@@ -79,4 +79,4 @@ packages:
   pypi:
     id: python-sdk
     path: packages/python-sdk
-    package-name: dloomb_python_test
+    package-name: loomb-test
