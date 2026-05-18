@@ -230,15 +230,18 @@ async function publishTaggedReleaseToRegistries() {
   checkoutRegistryPublishTag(explicitReleaseTag);
   const metadata = releaseMetadataFromTag(explicitReleaseTag);
   updatePackageVersions(metadata.npmVersion, metadata.pypiVersion);
-  await publishFromMetadata(metadata, {
+  const publication = await publishFromMetadata(metadata, {
     propagateRelease: false,
-    summaryTitle: "Mirrored registry publish modeled"
+    summaryTitle: registryPublishingEnabled()
+      ? "Mirrored registry publish prepared"
+      : "Mirrored registry publish modeled"
   });
+  exposeRegistryPublishPlan(metadata, publication);
 }
 
 async function publishFromMetadata(metadata, {
   propagateRelease = true,
-  summaryTitle = `${titleCase(metadata.channel)} release modeled`
+  summaryTitle = `${titleCase(metadata.channel)} release prepared`
 } = {}) {
   rmSync(distDir, { recursive: true, force: true });
   mkdirSync(resolve(distDir, "npm"), { recursive: true });
@@ -275,8 +278,8 @@ async function publishFromMetadata(metadata, {
     `- Release Please PR refresh: \`${releasePleasePrRefreshState()}\``,
     `- npm artifact: \`${relativeToRepo(nodeArtifact)}\``,
     `- PyPI artifacts: ${pythonArtifacts.map((artifact) => `\`${relativeToRepo(artifact)}\``).join(", ")}`,
-    `- npm publish model: Trusted Publisher OIDC with dist-tag \`${npmDistTag(metadata.channel)}\``,
-    "- PyPI publish model: Trusted Publisher OIDC via `pypa/gh-action-pypi-publish@release/v1`",
+    `- npm publish path: Trusted Publisher OIDC with dist-tag \`${npmDistTag(metadata.channel)}\``,
+    "- PyPI publish path: Trusted Publisher OIDC via `pypa/gh-action-pypi-publish@release/v1`",
     propagateRelease
       ? `- Mirror propagation: ${propagation.description}`
       : "- Mirror propagation: already completed before the mirrored release event",
@@ -288,6 +291,13 @@ async function publishFromMetadata(metadata, {
       ? `- Mirror debug artifact: \`${relativeToRepo(propagation.path)}\``
       : "- Mirror debug artifact: not needed for mirrored release events"
   ]);
+
+  return {
+    nodeArtifact,
+    pythonArtifacts,
+    manifestPath,
+    propagation
+  };
 }
 
 function updatePackageVersions(npmVersion, pypiVersion) {
@@ -400,7 +410,7 @@ async function propagateReleaseToTarget({
       title: `${metadata.tag} ${metadata.channel} release`,
       prerelease: metadata.channel !== "production",
       notes: [
-        `Simulated ${metadata.channel} release for base version ${metadata.baseVersion}.`,
+        `${titleCase(metadata.channel)} release for base version ${metadata.baseVersion}.`,
         `npm -> ${config.packages.npm.packageName}@${metadata.npmVersion}`,
         `PyPI -> ${config.packages.pypi.packageName}==${metadata.pypiVersion}`
       ].join("\n")
@@ -724,6 +734,24 @@ function exposeRelease(metadata) {
   setOutput("release-channel", metadata.channel);
   setOutput("npm-version", metadata.npmVersion);
   setOutput("pypi-version", metadata.pypiVersion);
+}
+
+function exposeRegistryPublishPlan(metadata, { nodeArtifact }) {
+  const publishRegistries = registryPublishingEnabled();
+  setOutput("publish-registries", publishRegistries ? "true" : "false");
+
+  if (!publishRegistries) {
+    return;
+  }
+
+  setOutput("npm-artifact", nodeArtifact);
+  setOutput("npm-dist-tag", npmDistTag(metadata.channel));
+  setOutput("npm-access", config.publishing.npm.access);
+  setOutput("pypi-packages-dir", resolve(distDir, "pypi"));
+}
+
+function registryPublishingEnabled() {
+  return config.publishing.mode === "publish";
 }
 
 function releasePleaseBaselineVersion() {
@@ -1090,7 +1118,7 @@ function normalizeConfig(raw) {
       production: normalizeChannel(channels.production)
     },
     publishing: {
-      mode: publishing.mode,
+      mode: publishing.mode ?? "simulate",
       surface: publishing.surface ?? "source",
       npm: normalizePublishing(publishing.npm),
       pypi: normalizePublishing(publishing.pypi)
@@ -1119,7 +1147,8 @@ function normalizePublishing(publishing = {}) {
     strategy: publishing.strategy,
     workflowFile: publishing["workflow-file"],
     requires: publishing.requires ?? [],
-    recommendedAction: publishing["recommended-action"]
+    recommendedAction: publishing["recommended-action"],
+    access: publishing.access ?? "public"
   };
 }
 

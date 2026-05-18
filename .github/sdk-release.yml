@@ -48,11 +48,12 @@ channels:
     pypi-phase: final
 
 publishing:
-  mode: simulate
+  mode: publish
   surface: mirror
 
   npm:
     strategy: trusted-publisher
+    access: public
     workflow-file: release-bot.yml
     requires:
       - GitHub-hosted runner

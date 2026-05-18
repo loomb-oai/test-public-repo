@@ -160,14 +160,23 @@ Those examples assume Release Please's current candidate version is `0.2.0`.
 
 This sample chooses the mirror repo as the registry publish surface:
 
-- npm is modeled as Trusted Publishers with GitHub Actions OIDC.
-- PyPI is modeled as Trusted Publishing through
+- npm publishes through Trusted Publishers with GitHub Actions OIDC.
+- PyPI publishes through Trusted Publishing via
   `pypa/gh-action-pypi-publish@release/v1`.
 - `packages/node-sdk/package.json` points its repository URL at
   `loomb-oai/test-public-repo`, which matches the configured publish-surface
   repository for this sample.
 - The workflow carries `permissions.id-token: write` because the same mirrored
   workflow handles the registry publish run.
+
+Before running this in `mode: publish`, configure each registry to trust the
+mirror-side release job:
+
+- npm Trusted Publisher: repository `loomb-oai/test-public-repo`, workflow
+  `release-bot.yml`, and the matching package ownership/settings on npm.
+- PyPI Trusted Publisher: repository `loomb-oai/test-public-repo`, workflow
+  `release-bot.yml`, environment `main`, and the matching project or pending
+  publisher configuration on PyPI.
 
 For this private-to-private proof of concept, the mirror repo can stay private.
 If this exact topology is later used to obtain npm provenance attestations, the
@@ -187,6 +196,7 @@ releases:
     target: mirror
 
 publishing:
+  mode: publish
   surface: mirror
 ```
 
@@ -203,6 +213,7 @@ releases:
     target: source
 
 publishing:
+  mode: publish
   surface: source
 ```
 
@@ -260,15 +271,17 @@ contains:
    - scheduler `repository_dispatch` events
    - pushes to `rc/**`
    - mirrored release events
-5. Inspect `dist/release-manifest.json` after a local simulation to see the
-   modeled npm/PyPI release output.
+5. Inspect `dist/release-manifest.json` after a run to see the npm/PyPI release
+   payload that drives publish steps.
 6. Inspect `dist/mirror-propagation.json` to see the exact mirrored branch,
    tag, and target-release payload.
 
-## What This Simulates
+## What This Demonstrates
 
-This is not a real package publisher. It is a visual model of the intended
-contract:
+With `publishing.mode: publish`, the mirrored release workflow now performs
+real npm and PyPI publish steps once the corresponding registry Trusted
+Publishers are configured. The sample still keeps the packages intentionally
+small so the release contract is easy to inspect:
 
 - scheduler workflows own the recurring wake-ups and same-repo dispatch
 - the GitHub App owns cross-repo GitHub operations
