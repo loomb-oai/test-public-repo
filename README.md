@@ -35,10 +35,12 @@ The integrator-facing surface is now intentionally small:
 
 ## Control Plane
 
-The near-term sample uses tiny scheduler workflows inside the private repo:
+The near-term sample uses tiny scheduler workflows inside the private repo. For
+the current end-to-end verification pass, they run on an intentionally faster
+test cadence:
 
-1. `nightly-beta-scheduler.yml` runs at 6:00 PM Pacific.
-2. `weekly-rc-scheduler.yml` runs every Monday at 00:01 Pacific.
+1. `nightly-beta-scheduler.yml` targets every 10 minutes.
+2. `weekly-rc-scheduler.yml` targets the top of every hour.
 3. Each scheduler uses the workflow `GITHUB_TOKEN` to dispatch the same repo's
    `release-bot` workflow with:
 
@@ -141,11 +143,11 @@ The sample models:
    - npm example: `0.2.0-alpha.20260515.1`
    - PyPI example: `0.2.0a2026051501`
 2. `beta`
-   - scheduled end-of-day build at 6:00 PM Pacific
+   - temporary verification cadence targeting every 10 minutes
    - npm example: `0.2.0-beta.20260515`
    - PyPI example: `0.2.0b20260515`
 3. `rc`
-   - scheduled Monday 00:01 Pacific branch cut into `rc/{version}`
+   - temporary verification cadence targeting hourly branch cuts into `rc/{version}`
    - branch contents are snapped from the Release Please candidate commit
    - refreshes when critical fixes land on `rc/**`
    - npm example: `0.2.0-rc.1`

@@ -2,7 +2,7 @@ name: weekly-rc-scheduler
 
 on:
   schedule:
-    - cron: "1 0 * * 1"
+    - cron: "0 * * * *"
       timezone: "America/Los_Angeles"
   workflow_dispatch:
 
