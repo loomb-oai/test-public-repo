@@ -151,6 +151,17 @@ async function cutRcRelease() {
   const rcBranch = renderPattern(config.channels.rc.branchPattern, {
     version: baseVersion
   });
+  const candidateCommit = releasePleaseCandidateCommit();
+  if (scheduledRcBranchAlreadyMatchesCandidate(rcBranch, candidateCommit)) {
+    writeSummary([
+      "# RC cut skipped",
+      "",
+      `Existing branch \`${rcBranch}\` already points at Release Please candidate \`${candidateCommit.slice(0, 12)}\`.`
+    ]);
+    setOutput("release-skipped", "true");
+    return;
+  }
+
   const tag = renderChannelTag("rc", {
     version: baseVersion,
     iteration: 1
@@ -158,7 +169,7 @@ async function cutRcRelease() {
   const npmVersion = tag.replace(/^v/, "");
   const pypiVersion = toPyPiVersion("rc", baseVersion, { iteration: 1 });
 
-  createOrRefreshRcBranch(rcBranch, releasePleaseCandidateCommit());
+  createOrRefreshRcBranch(rcBranch, candidateCommit);
   updatePackageVersions(npmVersion, pypiVersion);
 
   const metadata = buildReleaseMetadata({
@@ -506,6 +517,21 @@ function checkoutRegistryPublishTag(tag) {
 function createOrRefreshRcBranch(rcBranch, startPoint = "HEAD") {
   git(["checkout", "-B", rcBranch, startPoint], { stdio: "inherit" });
   git(["push", "origin", rcBranch, "--force-with-lease"], { stdio: "inherit" });
+}
+
+function scheduledRcBranchAlreadyMatchesCandidate(rcBranch, candidateCommit) {
+  try {
+    const existingCommit = git(
+      ["ls-remote", "--heads", "origin", `refs/heads/${rcBranch}`],
+      { encoding: "utf8" }
+    )
+      .trim()
+      .split(/\s+/)
+      .at(0);
+    return existingCommit === candidateCommit;
+  } catch {
+    return false;
+  }
 }
 
 function ensureReleaseTagExists(releaseTag) {

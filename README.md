@@ -148,6 +148,7 @@ The sample models:
    - PyPI example: `0.2.0b20260515`
 3. `rc`
    - temporary verification cadence targeting hourly branch cuts into `rc/{version}`
+   - scheduled cuts no-op when the existing RC branch already matches the current Release Please candidate commit
    - branch contents are snapped from the Release Please candidate commit
    - refreshes when critical fixes land on `rc/**`
    - npm example: `0.2.0-rc.1`
