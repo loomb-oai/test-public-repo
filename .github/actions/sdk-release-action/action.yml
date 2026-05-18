@@ -1,5 +1,5 @@
 name: "SDK Release Action"
-description: "Wraps Release Please and models the SDK release train for a monorepo."
+description: "Wraps Release Please, mirrors releases, and publishes configured SDK artifacts."
 
 inputs:
   mode:
@@ -19,7 +19,7 @@ inputs:
     required: false
     default: ".release-please-manifest.json"
   release-tag:
-    description: "Optional local override for registry-publish simulation."
+    description: "Optional local override for registry-publish runs."
     required: false
   github-app-id:
     description: "GitHub App ID used for future cross-repo release operations."
@@ -30,10 +30,10 @@ inputs:
 
 outputs:
   release-version:
-    description: "Version handled by the simulated release action"
+    description: "Version handled by the release action"
     value: ${{ steps.run.outputs.release-version }}
   release-tag:
-    description: "Tag handled by the simulated release action"
+    description: "Tag handled by the release action"
     value: ${{ steps.run.outputs.release-tag }}
 
 runs:
@@ -114,3 +114,17 @@ runs:
         SDK_RELEASE_GH_APP_PRIVATE_KEY: ${{ inputs.github-app-private-key }}
         SDK_RELEASE_GH_APP_TOKEN: ${{ steps.github-app-token.outputs.token }}
       run: node "$GITHUB_WORKSPACE/scripts/sdk-release-action.mjs"
+
+    - name: Publish npm package
+      if: ${{ steps.run.outputs.publish-registries == 'true' }}
+      shell: bash
+      run: |
+        npm publish "${{ steps.run.outputs.npm-artifact }}" \
+          --tag "${{ steps.run.outputs.npm-dist-tag }}" \
+          --access "${{ steps.run.outputs.npm-access }}"
+
+    - name: Publish Python package distributions to PyPI
+      if: ${{ steps.run.outputs.publish-registries == 'true' }}
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        packages-dir: ${{ steps.run.outputs.pypi-packages-dir }}
