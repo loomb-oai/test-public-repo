@@ -74,9 +74,9 @@ packages:
   npm:
     id: node-sdk
     path: packages/node-sdk
-    package-name: "@demo/node-sdk"
+    package-name: dloomb_node_test
 
   pypi:
     id: python-sdk
     path: packages/python-sdk
-    package-name: demo-python-sdk
+    package-name: dloomb_python_test

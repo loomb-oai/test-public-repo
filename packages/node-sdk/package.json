@@ -1,5 +1,5 @@
 {
-  "name": "@demo/node-sdk",
+  "name": "dloomb_node_test",
   "version": "0.1.0",
   "description": "Demo Node package for the SDK release action simulation.",
   "main": "src/index.js",
