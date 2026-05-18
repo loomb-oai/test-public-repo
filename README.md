@@ -191,6 +191,16 @@ The App replaces any long-lived cross-repo token. It should:
 - mirror refs into the public repo
 - create the public GitHub Release that triggers registry publishing
 
+The sample workflow passes these CI secrets into the local action when
+mirror-targeted release behavior is configured:
+
+- `SDK_RELEASE_GH_APP_ID`
+- `SDK_RELEASE_GH_APP_PRIVATE_KEY`
+
+The local action accepts those values now. The remaining implementation work is
+to mint the installation token from them and use it for the configured
+cross-repo mirror/release handoff.
+
 ## How To Read The Demo
 
 1. Start with `.github/sdk-release.yml`.

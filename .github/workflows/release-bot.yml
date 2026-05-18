@@ -60,3 +60,5 @@ jobs:
         uses: ./.github/actions/sdk-release-action
         with:
           config-file: .github/sdk-release.yml
+          github-app-id: ${{ secrets.SDK_RELEASE_GH_APP_ID }}
+          github-app-private-key: ${{ secrets.SDK_RELEASE_GH_APP_PRIVATE_KEY }}

@@ -38,6 +38,8 @@ const releasePleaseManifestPath = resolve(
 );
 const releasePleaseConfig = JSON.parse(readFileSync(releasePleaseConfigPath, "utf8"));
 const releasePleaseManifest = JSON.parse(readFileSync(releasePleaseManifestPath, "utf8"));
+const githubAppId = process.env.SDK_RELEASE_GH_APP_ID ?? "";
+const githubAppPrivateKey = process.env.SDK_RELEASE_GH_APP_PRIVATE_KEY ?? "";
 const releaseDir = resolve(repoRoot, ".sdk-release");
 const releaseFile = resolve(releaseDir, "release.json");
 const distDir = resolve(repoRoot, "dist");
