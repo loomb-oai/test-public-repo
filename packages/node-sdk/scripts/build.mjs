@@ -7,7 +7,7 @@ writeFileSync(
   resolve(outDir, "build-info.json"),
   JSON.stringify(
     {
-      package: "dloomb_node_test",
+      package: "@loomb-oai/node-test",
       builtAt: new Date().toISOString()
     },
     null,

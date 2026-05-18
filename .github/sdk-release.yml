@@ -74,7 +74,7 @@ packages:
   npm:
     id: node-sdk
     path: packages/node-sdk
-    package-name: dloomb_node_test
+    package-name: "@loomb-oai/node-test"
 
   pypi:
     id: python-sdk

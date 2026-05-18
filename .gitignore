@@ -6,3 +6,4 @@ packages/node-sdk/build/
 packages/python-sdk/build/
 packages/python-sdk/src/*.egg-info/
 .DS_Store
+.npmrc
