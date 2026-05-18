@@ -29,7 +29,7 @@ channels:
 
   beta:
     source-branch: main
-    tag-pattern: "v{version}-beta.{date}"
+    tag-pattern: "v{version}-beta.{date}.{time}"
     npm-dist-tag: beta
     pypi-phase: beta
     only-if-changed: true
