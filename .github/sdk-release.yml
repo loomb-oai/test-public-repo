@@ -12,12 +12,12 @@ releases:
 schedules:
   nightly-beta:
     operation: beta
-    cron: "2/5 * * * *"
+    cron: "5,10,15,25,30,35,45,50,55 * * * *"
     timezone: America/Los_Angeles
 
   weekly-rc:
     operation: cut-rc
-    cron: "7/10 * * * *"
+    cron: "0,20,40 * * * *"
     timezone: America/Los_Angeles
 
 channels:
