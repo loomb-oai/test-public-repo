@@ -11,7 +11,7 @@ This sample uses two repositories:
   - runs release orchestration jobs
 - `loomb-oai/test-public-repo`
   - exact Git mirror of the private repository
-  - owns the public GitHub Release and Trusted Publisher registry run
+  - owns the mirrored GitHub Release and Trusted Publisher registry run
 
 That topology is configurable. A single-repo integration can target the source
 repo for both GitHub Releases and registry publishing instead.
@@ -53,12 +53,13 @@ The near-term sample uses tiny scheduler workflows inside the private repo:
 ```
 
 4. After a private release run creates its release tag, the App mirrors refs to
-   the public repo and creates the public GitHub Release.
-5. The public release event wakes the same `release-bot` workflow in the public
-   mirror, where the action models npm and PyPI publication.
+   the mirror repo and creates the mirror-side GitHub Release.
+5. The mirrored release event wakes the same `release-bot` workflow in the
+   target repo, where the action models npm and PyPI publication.
 
-This keeps scheduling native to GitHub Actions. The GitHub App is still the
-boundary for actual cross-repo work such as private-to-public mirroring.
+This keeps scheduling native to GitHub Actions. The GitHub App is the boundary
+for the actual cross-repo work such as private-to-private mirroring in this
+sample.
 
 ## Release Please
 
@@ -69,15 +70,28 @@ The local `sdk-release-action` wraps
 - it reads `.release-please-manifest.json`
 - it refreshes the private repo Release Please PR for release-train runs on
   `main`
-- it sets `skip-github-release: true` because the public/private mirror flow
-  owns the eventual public Release handoff
+- it sets `skip-github-release: true` because the mirror flow owns the target
+  GitHub Release creation
 
-The sample release train uses the Release Please manifest as its released
-version baseline. With the checked-in manifest at `0.1.0`, the local model
-advances the train to `0.2.0` for alpha, beta, and RC examples. A production
-implementation should consume the actual Release Please candidate/version plan
-as the stable-version authority rather than keep the sample's fixed
-"next-minor" simplification.
+The sample release train now treats Release Please as the candidate-version
+authority:
+
+- when Release Please refreshes a release PR, the local action reads that PR
+  head's `.release-please-manifest.json`
+- alpha, beta, and RC versions are derived from the candidate version found in
+  that Release Please-managed manifest
+- weekly RC cuts fork the RC branch from that same Release Please candidate
+  commit, preserving the exact stable-version/changelog state Release Please
+  authored for that train
+- RC and final publish jobs apply prerelease or final packaging overlays only in
+  the CI workspace; they do not rewrite the RC branch's Release Please-authored
+  stable files
+- local/offline simulations fall back to the checked-in manifest when no PR
+  metadata is available
+
+That means the action no longer invents `0.2.0` by applying a local "always bump
+minor" rule. Release Please decides the base version; `sdk-release-action`
+only decorates it for the selected channel.
 
 ## Lifecycle
 
@@ -92,8 +106,8 @@ flowchart TD
   F --> I
   H --> I
   I --> J["private release tag"]
-  J --> K["GitHub App mirrors refs and creates public Release"]
-  K --> L["release-bot in public repo"]
+  J --> K["GitHub App mirrors refs and creates target Release"]
+  K --> L["release-bot in mirror repo"]
   L --> M["Trusted Publisher registry run"]
 ```
 
@@ -131,12 +145,16 @@ The sample models:
    - PyPI example: `0.2.0b20260515`
 3. `rc`
    - scheduled Monday 00:01 Pacific branch cut into `rc/{version}`
+   - branch contents are snapped from the Release Please candidate commit
    - refreshes when critical fixes land on `rc/**`
    - npm example: `0.2.0-rc.1`
    - PyPI example: `0.2.0rc1`
 4. `production`
    - manual finalization from a selected RC branch
+   - promotes the preserved Release Please candidate state on that RC branch
    - npm and PyPI example: `0.2.0`
+
+Those examples assume Release Please's current candidate version is `0.2.0`.
 
 ## Trusted Publishing
 
@@ -146,9 +164,14 @@ This sample chooses the mirror repo as the registry publish surface:
 - PyPI is modeled as Trusted Publishing through
   `pypa/gh-action-pypi-publish@release/v1`.
 - `packages/node-sdk/package.json` points its repository URL at
-  `loomb-oai/test-public-repo`, which matches the npm publisher repository.
+  `loomb-oai/test-public-repo`, which matches the configured publish-surface
+  repository for this sample.
 - The workflow carries `permissions.id-token: write` because the same mirrored
-  workflow handles the public registry publish run.
+  workflow handles the registry publish run.
+
+For this private-to-private proof of concept, the mirror repo can stay private.
+If this exact topology is later used to obtain npm provenance attestations, the
+actual npm publish surface would need to be a public GitHub repository.
 
 The repo config makes that explicit:
 
@@ -188,8 +211,8 @@ publishing:
 The App replaces any long-lived cross-repo token. It should:
 
 - observe private release tags or equivalent release-ready signals
-- mirror refs into the public repo
-- create the public GitHub Release that triggers registry publishing
+- mirror refs into the target repo
+- create the target GitHub Release that triggers registry publishing
 
 The sample workflow passes these CI secrets into the local action when
 mirror-targeted release behavior is configured:
@@ -197,19 +220,29 @@ mirror-targeted release behavior is configured:
 - `SDK_RELEASE_GH_APP_ID`
 - `SDK_RELEASE_GH_APP_PRIVATE_KEY`
 
-The local action accepts those values now and emits a concrete
-`dist/mirror-handoff.json` file for mirror-targeted releases. That handoff
+The GitHub App needs to be installed on both repositories and must be able to
+read/write repository contents in the mirror target so the action can push refs
+and create Releases there.
+
+The local action now mints an installation token with
+`actions/create-github-app-token@v3`, then:
+
+- pushes the selected source branch into the mirror repo
+- pushes the release tag into the mirror repo
+- creates the mirror-side GitHub Release if it does not already exist
+
+That target release is what triggers the mirrored repo's `release.published`
+workflow path.
+
+The action also emits `dist/mirror-propagation.json` as a debug artifact. It
 contains:
 
 - source repo
 - configured Release target repo
 - configured publishing surface
-- whether the App credentials were present
+- whether the App credentials and minted token were present
 - tag and release metadata
 - artifact paths to attach
-
-The only intentionally omitted piece is the executable cross-repo writer that
-would consume that handoff and perform the actual mirror/release API calls.
 
 ## How To Read The Demo
 
@@ -220,11 +253,11 @@ would consume that handoff and perform the actual mirror/release API calls.
    - manual workflow dispatches
    - scheduler `repository_dispatch` events
    - pushes to `rc/**`
-   - public release events
+   - mirrored release events
 5. Inspect `dist/release-manifest.json` after a local simulation to see the
    modeled npm/PyPI release output.
-6. Inspect `dist/mirror-handoff.json` to see the exact configured sync/release
-   contract for mirror-targeted releases.
+6. Inspect `dist/mirror-propagation.json` to see the exact mirrored branch,
+   tag, and target-release payload.
 
 ## What This Simulates
 
@@ -237,4 +270,4 @@ contract:
 - the repo config owns release policy
 - Release Please owns release-plan maintenance from Conventional Commits
 - the action owns event routing, build orchestration, and registry execution
-- the public repo remains an exact Git mirror of the private source repository
+- the mirror repo remains an exact Git mirror of the private source repository

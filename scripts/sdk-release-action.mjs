@@ -38,8 +38,10 @@ const releasePleaseManifestPath = resolve(
 );
 const releasePleaseConfig = JSON.parse(readFileSync(releasePleaseConfigPath, "utf8"));
 const releasePleaseManifest = JSON.parse(readFileSync(releasePleaseManifestPath, "utf8"));
+const releasePleasePullRequests = readReleasePleasePullRequests();
 const githubAppId = process.env.SDK_RELEASE_GH_APP_ID ?? "";
 const githubAppPrivateKey = process.env.SDK_RELEASE_GH_APP_PRIVATE_KEY ?? "";
+const githubAppToken = process.env.SDK_RELEASE_GH_APP_TOKEN ?? "";
 const releaseDir = resolve(repoRoot, ".sdk-release");
 const releaseFile = resolve(releaseDir, "release.json");
 const distDir = resolve(repoRoot, "dist");
@@ -58,45 +60,49 @@ const supportedModes = new Set([
   "registry-publish"
 ]);
 
-if (!supportedModes.has(mode)) {
-  throw new Error(`Unsupported mode: ${mode}`);
+await main();
+
+async function main() {
+  if (!supportedModes.has(mode)) {
+    throw new Error(`Unsupported mode: ${mode}`);
+  }
+
+  if (mode === "noop") {
+    writeNoopSummary("No release operation matched this event.");
+    return;
+  }
+
+  if (shouldSkipForRepository(mode)) {
+    writeNoopSummary(
+      `Mode \`${mode}\` does not run in \`${githubRepository}\`; the mirrored workflow is intentionally inert here.`
+    );
+    return;
+  }
+
+  switch (mode) {
+    case "alpha":
+      await runEphemeralChannel("alpha");
+      break;
+    case "beta":
+      await runEphemeralChannel("beta");
+      break;
+    case "cut-rc":
+      await cutRcRelease();
+      break;
+    case "refresh-rc":
+      await refreshRcRelease();
+      break;
+    case "final":
+      await finalizeRcRelease();
+      break;
+    case "registry-publish":
+      await publishTaggedReleaseToRegistries();
+      break;
+  }
 }
 
-if (mode === "noop") {
-  writeNoopSummary("No release operation matched this event.");
-  process.exit(0);
-}
-
-if (shouldSkipForRepository(mode)) {
-  writeNoopSummary(
-    `Mode \`${mode}\` does not run in \`${githubRepository}\`; the mirrored workflow is intentionally inert here.`
-  );
-  process.exit(0);
-}
-
-switch (mode) {
-  case "alpha":
-    runEphemeralChannel("alpha");
-    break;
-  case "beta":
-    runEphemeralChannel("beta");
-    break;
-  case "cut-rc":
-    cutRcRelease();
-    break;
-  case "refresh-rc":
-    refreshRcRelease();
-    break;
-  case "final":
-    finalizeRcRelease();
-    break;
-  case "registry-publish":
-    publishTaggedReleaseToRegistries();
-    break;
-}
-
-function runEphemeralChannel(channel) {
-  const baseVersion = resolveNextBaseVersion();
+async function runEphemeralChannel(channel) {
+  const baseVersion = releasePleaseCandidateVersion();
   const date = dateStamp();
   const sequence = channel === "alpha" ? nextAlphaSequence(baseVersion, date) : null;
   const tag = renderChannelTag(channel, {
@@ -131,11 +137,11 @@ function runEphemeralChannel(channel) {
     note: channel === "alpha" ? "Manual alpha build." : "Scheduled end-of-day beta build."
   });
   writeReleaseMetadata(metadata);
-  publishFromMetadata(metadata);
+  await publishFromMetadata(metadata);
 }
 
-function cutRcRelease() {
-  const baseVersion = resolveNextBaseVersion();
+async function cutRcRelease() {
+  const baseVersion = releasePleaseCandidateVersion();
   const rcBranch = renderPattern(config.channels.rc.branchPattern, {
     version: baseVersion
   });
@@ -146,9 +152,8 @@ function cutRcRelease() {
   const npmVersion = tag.replace(/^v/, "");
   const pypiVersion = toPyPiVersion("rc", baseVersion, { iteration: 1 });
 
-  createOrRefreshRcBranch(rcBranch);
+  createOrRefreshRcBranch(rcBranch, releasePleaseCandidateCommit());
   updatePackageVersions(npmVersion, pypiVersion);
-  updateChangelog(baseVersion, tag, "rc");
 
   const metadata = buildReleaseMetadata({
     channel: "rc",
@@ -163,11 +168,10 @@ function cutRcRelease() {
   });
 
   writeReleaseMetadata(metadata);
-  commitAndPushWorkingTree(`chore(rc): prepare ${tag}`, rcBranch);
-  publishFromMetadata(metadata);
+  await publishFromMetadata(metadata);
 }
 
-function refreshRcRelease() {
+async function refreshRcRelease() {
   const rcBranch = githubRefName || currentBranch();
   const baseVersion = parseRcBranchVersion(rcBranch);
   const iteration = nextRcIteration(baseVersion);
@@ -192,20 +196,16 @@ function refreshRcRelease() {
   });
 
   writeReleaseMetadata(metadata);
-  commitAndPushWorkingTree(`chore(rc): refresh ${tag}`, rcBranch);
-  publishFromMetadata(metadata);
+  await publishFromMetadata(metadata);
 }
 
-function finalizeRcRelease() {
+async function finalizeRcRelease() {
   const rcBranch = requestedRcBranch || githubRefName || currentBranch();
   checkoutRequestedRcBranch(rcBranch);
   const baseVersion = parseRcBranchVersion(rcBranch);
   const tag = renderChannelTag("production", {
     version: baseVersion
   });
-
-  updatePackageVersions(baseVersion, baseVersion);
-  updateChangelog(baseVersion, tag, "production");
 
   const metadata = buildReleaseMetadata({
     channel: "production",
@@ -219,11 +219,10 @@ function finalizeRcRelease() {
   });
 
   writeReleaseMetadata(metadata);
-  commitAndPushWorkingTree(`chore(release): finalize ${tag}`, rcBranch);
-  publishFromMetadata(metadata);
+  await publishFromMetadata(metadata);
 }
 
-function publishTaggedReleaseToRegistries() {
+async function publishTaggedReleaseToRegistries() {
   if (!explicitReleaseTag) {
     throw new Error("registry-publish mode requires SDK_RELEASE_RELEASE_TAG.");
   }
@@ -231,14 +230,14 @@ function publishTaggedReleaseToRegistries() {
   checkoutRegistryPublishTag(explicitReleaseTag);
   const metadata = releaseMetadataFromTag(explicitReleaseTag);
   updatePackageVersions(metadata.npmVersion, metadata.pypiVersion);
-  publishFromMetadata(metadata, {
-    githubAppHandoff: false,
-    summaryTitle: "Public registry publish modeled"
+  await publishFromMetadata(metadata, {
+    propagateRelease: false,
+    summaryTitle: "Mirrored registry publish modeled"
   });
 }
 
-function publishFromMetadata(metadata, {
-  githubAppHandoff = true,
+async function publishFromMetadata(metadata, {
+  propagateRelease = true,
   summaryTitle = `${titleCase(metadata.channel)} release modeled`
 } = {}) {
   rmSync(distDir, { recursive: true, force: true });
@@ -253,8 +252,8 @@ function publishFromMetadata(metadata, {
     pythonArtifacts
   });
 
-  const handoff = githubAppHandoff
-    ? writeMirrorHandoff({
+  const propagation = propagateRelease
+    ? await propagateReleaseToTarget({
         metadata,
         nodeArtifact,
         pythonArtifacts,
@@ -270,22 +269,24 @@ function publishFromMetadata(metadata, {
     `- Tag: \`${metadata.tag}\``,
     `- npm version: \`${metadata.npmVersion}\``,
     `- PyPI version: \`${metadata.pypiVersion}\``,
-    `- Release Please manifest baseline: \`${releasePleaseBaselineVersion()}\``,
+    `- Release Please released baseline: \`${releasePleaseBaselineVersion()}\``,
+    `- Release Please candidate source: \`${releasePleaseCandidateSource()}\``,
+    `- Release Please candidate version: \`${releasePleaseCandidateVersion()}\``,
     `- Release Please PR refresh: \`${releasePleasePrRefreshState()}\``,
     `- npm artifact: \`${relativeToRepo(nodeArtifact)}\``,
     `- PyPI artifacts: ${pythonArtifacts.map((artifact) => `\`${relativeToRepo(artifact)}\``).join(", ")}`,
     `- npm publish model: Trusted Publisher OIDC with dist-tag \`${npmDistTag(metadata.channel)}\``,
     "- PyPI publish model: Trusted Publisher OIDC via `pypa/gh-action-pypi-publish@release/v1`",
-    githubAppHandoff
-      ? `- GitHub App handoff: ${handoff.description}`
-      : "- GitHub App handoff: already completed before the public release event",
-    githubAppHandoff
+    propagateRelease
+      ? `- Mirror propagation: ${propagation.description}`
+      : "- Mirror propagation: already completed before the mirrored release event",
+    propagateRelease
       ? mirrorSummaryLine()
       : `- Publish surface: \`${publishingRepository()}\` release event`
     ,
-    githubAppHandoff
-      ? `- Mirror handoff artifact: \`${relativeToRepo(handoff.path)}\``
-      : "- Mirror handoff artifact: not needed for public release events"
+    propagateRelease
+      ? `- Mirror debug artifact: \`${relativeToRepo(propagation.path)}\``
+      : "- Mirror debug artifact: not needed for mirrored release events"
   ]);
 }
 
@@ -316,21 +317,6 @@ function updatePythonVersion(version) {
     `__version__ = "${version}"`
   );
   writeFileSync(initPath, initFile, "utf8");
-}
-
-function updateChangelog(baseVersion, tag, channel) {
-  const changelogPath = resolve(repoRoot, "CHANGELOG.md");
-  const current = readFileSync(changelogPath, "utf8");
-  const date = isoDate();
-  const section = [
-    `## ${tag} - ${date}`,
-    "",
-    `- Demo ${channel} release generated by the local SDK release simulation.`,
-    ""
-  ].join("\n");
-
-  const updated = current.replace("## Unreleased\n\n", `## Unreleased\n\n${section}`);
-  writeFileSync(changelogPath, updated, "utf8");
 }
 
 function buildNodeArtifact() {
@@ -387,7 +373,7 @@ function writeReleaseManifest({ metadata, nodeArtifact, pythonArtifacts }) {
   return manifestPath;
 }
 
-function writeMirrorHandoff({
+async function propagateReleaseToTarget({
   metadata,
   nodeArtifact,
   pythonArtifacts,
@@ -406,7 +392,8 @@ function writeMirrorHandoff({
     mirror: config.repository.mirror,
     githubAppCredentialsPresent: {
       appId: githubAppId.length > 0,
-      privateKey: githubAppPrivateKey.length > 0
+      privateKey: githubAppPrivateKey.length > 0,
+      token: githubAppToken.length > 0
     },
     release: {
       tag: metadata.tag,
@@ -424,13 +411,51 @@ function writeMirrorHandoff({
       manifest: relativeToRepo(manifestPath)
     }
   };
-  const handoffPath = resolve(distDir, "mirror-handoff.json");
-  writeFileSync(handoffPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  const debugPath = resolve(distDir, "mirror-propagation.json");
+
+  if (!shouldPropagateRelease(targetRepo)) {
+    payload.result = {
+      mode: "skipped",
+      reason: "release target matches the current repository or mirroring is disabled"
+    };
+    writeFileSync(debugPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+    return {
+      path: debugPath,
+      description: `not needed for \`${targetRepo}\``
+    };
+  }
+
+  if (process.env.GITHUB_ACTIONS !== "true") {
+    payload.result = {
+      mode: "skipped",
+      reason: "local simulation does not mutate remote repositories"
+    };
+    writeFileSync(debugPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+    return {
+      path: debugPath,
+      description: `local simulation prepared \`${metadata.tag}\` for \`${targetRepo}\` without mutating remotes`
+    };
+  }
+
+  if (!githubAppToken) {
+    throw new Error(
+      "Mirror propagation requires SDK_RELEASE_GH_APP_TOKEN. Configure the GitHub App credentials so the action can mint an installation token."
+    );
+  }
+
+  mirrorReleaseRefs(targetRepo, metadata);
+  const release = await ensureRemoteGithubRelease(targetRepo, payload.release, metadata.sourceBranch);
+
+  payload.result = {
+    mode: "propagated",
+    releaseUrl: release.html_url ?? null,
+    releaseId: release.id ?? null
+  };
+  writeFileSync(debugPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 
   return {
-    path: handoffPath,
-    description:
-      `prepared \`${metadata.tag}\` for ${targetRepo}; mirror writer handoff is captured in \`${relativeToRepo(handoffPath)}\``
+    path: debugPath,
+    description: `mirrored \`${metadata.sourceBranch}\` and \`${metadata.tag}\` into \`${targetRepo}\`, then ensured the target GitHub Release exists`
   };
 }
 
@@ -455,18 +480,9 @@ function checkoutRegistryPublishTag(tag) {
   }
 }
 
-function createOrRefreshRcBranch(rcBranch) {
-  git(["checkout", "-B", rcBranch], { stdio: "inherit" });
+function createOrRefreshRcBranch(rcBranch, startPoint = "HEAD") {
+  git(["checkout", "-B", rcBranch, startPoint], { stdio: "inherit" });
   git(["push", "origin", rcBranch, "--force-with-lease"], { stdio: "inherit" });
-}
-
-function commitAndPushWorkingTree(message, branch) {
-  git(["add", "."], { stdio: "inherit" });
-  const porcelain = git(["status", "--porcelain"], { encoding: "utf8" }).trim();
-  if (porcelain.length > 0) {
-    git(["commit", "-m", message], { stdio: "inherit" });
-  }
-  git(["push", "origin", branch], { stdio: "inherit" });
 }
 
 function ensureReleaseTagExists(releaseTag) {
@@ -481,6 +497,77 @@ function ensureReleaseTagExists(releaseTag) {
   } catch {
     console.log(`Tag ${releaseTag} already exists on origin or could not be pushed again.`);
   }
+}
+
+function shouldPropagateRelease(targetRepo) {
+  return (
+    config.repository.mirror.enabled &&
+    targetRepo &&
+    targetRepo !== githubRepository
+  );
+}
+
+function mirrorReleaseRefs(targetRepo, metadata) {
+  const remoteName = "sdk-release-target";
+  const remoteUrl = `https://x-access-token:${githubAppToken}@github.com/${targetRepo}.git`;
+  const branchName = metadata.sourceBranch || currentBranch();
+
+  try {
+    git(["remote", "remove", remoteName], { stdio: "ignore" });
+  } catch {
+    // The temporary remote is not expected to exist on a fresh checkout.
+  }
+
+  git(["remote", "add", remoteName, remoteUrl], { stdio: "ignore" });
+  git(["push", remoteName, `HEAD:refs/heads/${branchName}`], { stdio: "inherit" });
+  git(["push", remoteName, `refs/tags/${metadata.tag}:refs/tags/${metadata.tag}`], {
+    stdio: "inherit"
+  });
+}
+
+async function ensureRemoteGithubRelease(targetRepo, release, targetCommitish) {
+  const existing = await githubApiRequest(
+    "GET",
+    `/repos/${targetRepo}/releases/tags/${release.tag}`,
+    null,
+    { allowNotFound: true }
+  );
+  if (existing) {
+    return existing;
+  }
+
+  return githubApiRequest("POST", `/repos/${targetRepo}/releases`, {
+    tag_name: release.tag,
+    target_commitish: targetCommitish,
+    name: release.title,
+    body: release.notes,
+    draft: false,
+    prerelease: release.prerelease
+  });
+}
+
+async function githubApiRequest(method, path, body = null, { allowNotFound = false } = {}) {
+  const response = await fetch(`https://api.github.com${path}`, {
+    method,
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${githubAppToken}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      ...(body ? { "Content-Type": "application/json" } : {})
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+
+  if (allowNotFound && response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`GitHub API ${method} ${path} failed with ${response.status}: ${message}`);
+  }
+
+  return response.json();
 }
 
 function buildReleaseMetadata({
@@ -524,7 +611,7 @@ function releaseMetadataFromTag(tag) {
       }),
       tag,
       sourceBranch: config.channels.alpha.sourceBranch,
-      note: "Public mirror release event for an alpha package publish."
+      note: "Mirrored release event for an alpha package publish."
     });
   }
 
@@ -538,7 +625,7 @@ function releaseMetadataFromTag(tag) {
       pypiVersion: toPyPiVersion("beta", baseVersion, { date }),
       tag,
       sourceBranch: config.channels.beta.sourceBranch,
-      note: "Public mirror release event for a beta package publish."
+      note: "Mirrored release event for a beta package publish."
     });
   }
 
@@ -557,7 +644,7 @@ function releaseMetadataFromTag(tag) {
       sourceBranch: rcBranch,
       rcBranch,
       iteration: Number.parseInt(iteration, 10),
-      note: "Public mirror release event for an RC package publish."
+      note: "Mirrored release event for an RC package publish."
     });
   }
 
@@ -576,7 +663,7 @@ function releaseMetadataFromTag(tag) {
       rcBranch: renderPattern(config.channels.production.sourceBranchPattern, {
         version: baseVersion
       }),
-      note: "Public mirror release event for a production package publish."
+      note: "Mirrored release event for a production package publish."
     });
   }
 
@@ -596,18 +683,6 @@ function exposeRelease(metadata) {
   setOutput("pypi-version", metadata.pypiVersion);
 }
 
-function resolveNextBaseVersion() {
-  const parts = releasePleaseBaselineVersion()
-    .split(".")
-    .map((part) => Number.parseInt(part, 10));
-  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) {
-    throw new Error("Unable to resolve the Release Please manifest baseline version.");
-  }
-  parts[1] += 1;
-  parts[2] = 0;
-  return parts.join(".");
-}
-
 function releasePleaseBaselineVersion() {
   const configuredPaths = Object.keys(releasePleaseConfig.packages ?? {});
   if (configuredPaths.length === 0) {
@@ -623,6 +698,81 @@ function releasePleaseBaselineVersion() {
   });
 
   return versions.sort(compareSemver).at(-1);
+}
+
+function releasePleaseCandidateVersion() {
+  const candidateManifest = releasePleaseCandidateManifest();
+  const configuredPaths = Object.keys(releasePleaseConfig.packages ?? {});
+  const versions = configuredPaths
+    .map((path) => candidateManifest[path])
+    .filter(Boolean)
+    .map((version) => version.split("-")[0]);
+
+  if (versions.length === 0) {
+    throw new Error("Unable to resolve a Release Please candidate version.");
+  }
+
+  return versions.sort(compareSemver).at(-1);
+}
+
+function releasePleaseCandidateManifest() {
+  const releasePullRequest = releasePleasePullRequests.at(0);
+  const headSha = releasePullRequest?.head?.sha;
+
+  if (headSha) {
+    try {
+      ensureReleasePleasePullRequestHead(releasePullRequest);
+      const manifest = git(
+        ["show", `${headSha}:${relativeToRepo(releasePleaseManifestPath)}`],
+        { encoding: "utf8" }
+      );
+      return JSON.parse(manifest);
+    } catch (error) {
+      console.log(
+        `Unable to read the Release Please manifest from PR head ${headSha}; falling back to the checked-in manifest.`
+      );
+    }
+  }
+
+  return releasePleaseManifest;
+}
+
+function ensureReleasePleasePullRequestHead(releasePullRequest) {
+  const headSha = releasePullRequest?.head?.sha;
+  const headRef = releasePullRequest?.head?.ref;
+  if (!headSha) {
+    return;
+  }
+
+  try {
+    git(["cat-file", "-e", `${headSha}^{commit}`], { stdio: "ignore" });
+    return;
+  } catch {
+    if (headRef) {
+      git(["fetch", "origin", headRef], { stdio: "inherit" });
+      return;
+    }
+    git(["fetch", "origin", headSha], { stdio: "inherit" });
+  }
+}
+
+function releasePleaseCandidateSource() {
+  const releasePullRequest = releasePleasePullRequests.at(0);
+  const headSha = releasePullRequest?.head?.sha;
+  if (headSha) {
+    return `release-pr:${headSha.slice(0, 12)}`;
+  }
+  return "checked-in-manifest-fallback";
+}
+
+function releasePleaseCandidateCommit() {
+  const releasePullRequest = releasePleasePullRequests.at(0);
+  const headSha = releasePullRequest?.head?.sha;
+  if (headSha) {
+    ensureReleasePleasePullRequestHead(releasePullRequest);
+    return headSha;
+  }
+  return githubSha;
 }
 
 function releasePleasePrRefreshState() {
@@ -643,6 +793,21 @@ function compareSemver(left, right) {
     }
   }
   return 0;
+}
+
+function readReleasePleasePullRequests() {
+  const raw = process.env.SDK_RELEASE_RELEASE_PLEASE_PRS;
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.log("Unable to parse Release Please PR metadata; continuing without PR-backed candidate discovery.");
+    return [];
+  }
 }
 
 function renderChannelTag(channel, values) {
@@ -805,15 +970,6 @@ function dateStamp() {
   })
     .format(new Date())
     .replaceAll("-", "");
-}
-
-function isoDate() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Los_Angeles",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).format(new Date());
 }
 
 function setOutput(name, value) {
