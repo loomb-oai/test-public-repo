@@ -511,18 +511,61 @@ function mirrorReleaseRefs(targetRepo, metadata) {
   const remoteName = "sdk-release-target";
   const remoteUrl = `https://x-access-token:${githubAppToken}@github.com/${targetRepo}.git`;
   const branchName = metadata.sourceBranch || currentBranch();
+  const checkoutAuthHeaders = readCheckoutGithubAuthHeaders();
 
   try {
-    git(["remote", "remove", remoteName], { stdio: "ignore" });
-  } catch {
-    // The temporary remote is not expected to exist on a fresh checkout.
-  }
+    clearCheckoutGithubAuthHeaders();
 
-  git(["remote", "add", remoteName, remoteUrl], { stdio: "ignore" });
-  git(["push", remoteName, `HEAD:refs/heads/${branchName}`], { stdio: "inherit" });
-  git(["push", remoteName, `refs/tags/${metadata.tag}:refs/tags/${metadata.tag}`], {
-    stdio: "inherit"
-  });
+    try {
+      git(["remote", "remove", remoteName], { stdio: "ignore" });
+    } catch {
+      // The temporary remote is not expected to exist on a fresh checkout.
+    }
+
+    git(["remote", "add", remoteName, remoteUrl], { stdio: "ignore" });
+    git(["push", remoteName, `HEAD:refs/heads/${branchName}`], { stdio: "inherit" });
+    git(["push", remoteName, `refs/tags/${metadata.tag}:refs/tags/${metadata.tag}`], {
+      stdio: "inherit"
+    });
+  } finally {
+    restoreCheckoutGithubAuthHeaders(checkoutAuthHeaders);
+  }
+}
+
+function readCheckoutGithubAuthHeaders() {
+  try {
+    const headers = git(
+      ["config", "--local", "--get-all", "http.https://github.com/.extraheader"],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"]
+      }
+    );
+    return headers
+      .split("\n")
+      .map((header) => header.trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function clearCheckoutGithubAuthHeaders() {
+  try {
+    git(["config", "--local", "--unset-all", "http.https://github.com/.extraheader"], {
+      stdio: "ignore"
+    });
+  } catch {
+    // Checkouts without persisted credentials do not have this header.
+  }
+}
+
+function restoreCheckoutGithubAuthHeaders(headers) {
+  for (const header of headers) {
+    git(["config", "--local", "--add", "http.https://github.com/.extraheader", header], {
+      stdio: "ignore"
+    });
+  }
 }
 
 async function ensureRemoteGithubRelease(targetRepo, release, targetCommitish) {
