@@ -75,6 +75,9 @@ runs:
         app-id: ${{ inputs.github-app-id }}
         private-key: ${{ inputs.github-app-private-key }}
         owner: ${{ github.repository_owner }}
+        repositories: |
+          test-private-repo
+          test-public-repo
         permission-contents: write
         permission-issues: write
         permission-pull-requests: write
