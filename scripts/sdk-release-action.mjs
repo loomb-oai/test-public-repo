@@ -253,7 +253,14 @@ function publishFromMetadata(metadata, {
     pythonArtifacts
   });
 
-  const handoff = githubAppHandoff ? prepareGithubAppHandoff(metadata) : {};
+  const handoff = githubAppHandoff
+    ? writeMirrorHandoff({
+        metadata,
+        nodeArtifact,
+        pythonArtifacts,
+        manifestPath
+      })
+    : {};
 
   exposeRelease(metadata);
   writeSummary([
@@ -275,6 +282,10 @@ function publishFromMetadata(metadata, {
     githubAppHandoff
       ? mirrorSummaryLine()
       : `- Publish surface: \`${publishingRepository()}\` release event`
+    ,
+    githubAppHandoff
+      ? `- Mirror handoff artifact: \`${relativeToRepo(handoff.path)}\``
+      : "- Mirror handoff artifact: not needed for public release events"
   ]);
 }
 
@@ -376,14 +387,50 @@ function writeReleaseManifest({ metadata, nodeArtifact, pythonArtifacts }) {
   return manifestPath;
 }
 
-function prepareGithubAppHandoff(metadata) {
+function writeMirrorHandoff({
+  metadata,
+  nodeArtifact,
+  pythonArtifacts,
+  manifestPath
+}) {
   if (process.env.GITHUB_ACTIONS === "true") {
     ensureReleaseTagExists(metadata.tag);
   }
 
+  const targetRepo = releaseRepository();
+  const payload = {
+    action: "mirror-and-create-release",
+    sourceRepository: config.repository.source,
+    releaseRepository: targetRepo,
+    publishingRepository: publishingRepository(),
+    mirror: config.repository.mirror,
+    githubAppCredentialsPresent: {
+      appId: githubAppId.length > 0,
+      privateKey: githubAppPrivateKey.length > 0
+    },
+    release: {
+      tag: metadata.tag,
+      title: `${metadata.tag} ${metadata.channel} release`,
+      prerelease: metadata.channel !== "production",
+      notes: [
+        `Simulated ${metadata.channel} release for base version ${metadata.baseVersion}.`,
+        `npm -> ${config.packages.npm.packageName}@${metadata.npmVersion}`,
+        `PyPI -> ${config.packages.pypi.packageName}==${metadata.pypiVersion}`
+      ].join("\n")
+    },
+    artifacts: {
+      node: relativeToRepo(nodeArtifact),
+      python: pythonArtifacts.map((artifact) => relativeToRepo(artifact)),
+      manifest: relativeToRepo(manifestPath)
+    }
+  };
+  const handoffPath = resolve(distDir, "mirror-handoff.json");
+  writeFileSync(handoffPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+
   return {
+    path: handoffPath,
     description:
-      `private tag \`${metadata.tag}\` is the App signal to mirror refs and create the public GitHub Release`
+      `prepared \`${metadata.tag}\` for ${targetRepo}; mirror writer handoff is captured in \`${relativeToRepo(handoffPath)}\``
   };
 }
 

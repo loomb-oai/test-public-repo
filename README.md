@@ -197,9 +197,19 @@ mirror-targeted release behavior is configured:
 - `SDK_RELEASE_GH_APP_ID`
 - `SDK_RELEASE_GH_APP_PRIVATE_KEY`
 
-The local action accepts those values now. The remaining implementation work is
-to mint the installation token from them and use it for the configured
-cross-repo mirror/release handoff.
+The local action accepts those values now and emits a concrete
+`dist/mirror-handoff.json` file for mirror-targeted releases. That handoff
+contains:
+
+- source repo
+- configured Release target repo
+- configured publishing surface
+- whether the App credentials were present
+- tag and release metadata
+- artifact paths to attach
+
+The only intentionally omitted piece is the executable cross-repo writer that
+would consume that handoff and perform the actual mirror/release API calls.
 
 ## How To Read The Demo
 
@@ -213,6 +223,8 @@ cross-repo mirror/release handoff.
    - public release events
 5. Inspect `dist/release-manifest.json` after a local simulation to see the
    modeled npm/PyPI release output.
+6. Inspect `dist/mirror-handoff.json` to see the exact configured sync/release
+   contract for mirror-targeted releases.
 
 ## What This Simulates
 
