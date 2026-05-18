@@ -52,6 +52,7 @@ const githubSha = process.env.GITHUB_SHA ?? git(["rev-parse", "HEAD"], { encodin
 
 const supportedModes = new Set([
   "noop",
+  "refresh-plan",
   "alpha",
   "beta",
   "cut-rc",
@@ -69,6 +70,11 @@ async function main() {
 
   if (mode === "noop") {
     writeNoopSummary("No release operation matched this event.");
+    return;
+  }
+
+  if (mode === "refresh-plan") {
+    writeNoopSummary("Release Please refreshed the rolling release PR for main.");
     return;
   }
 
@@ -981,6 +987,10 @@ function resolveMode(rawMode) {
 
   if (eventName === "push" && githubRefName.startsWith("rc/")) {
     return "refresh-rc";
+  }
+
+  if (eventName === "push" && githubRefName === "main") {
+    return "refresh-plan";
   }
 
   if (eventName === "release") {

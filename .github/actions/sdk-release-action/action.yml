@@ -53,6 +53,8 @@ runs:
             operation="${{ github.event.client_payload.operation }}"
           elif [ "$GITHUB_EVENT_NAME" = "push" ] && [[ "$GITHUB_REF_NAME" == rc/* ]]; then
             operation="refresh-rc"
+          elif [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF_NAME" = "main" ]; then
+            operation="refresh-plan"
           elif [ "$GITHUB_EVENT_NAME" = "release" ]; then
             operation="registry-publish"
           else

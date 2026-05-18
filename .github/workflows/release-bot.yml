@@ -21,6 +21,7 @@ on:
       - sdk-release
   push:
     branches:
+      - main
       - "rc/**"
   release:
     types:
