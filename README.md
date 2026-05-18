@@ -68,8 +68,9 @@ The local `sdk-release-action` wraps
 
 - it reads `.github/release-please-config.json`
 - it reads `.release-please-manifest.json`
-- it refreshes the private repo Release Please PR for release-train runs on
+- it refreshes the private repo Release Please PR after normal pushes to
   `main`
+- it also refreshes that plan before scheduled/manual release-train runs
 - it sets `skip-github-release: true` because the mirror flow owns the target
   GitHub Release creation
 
