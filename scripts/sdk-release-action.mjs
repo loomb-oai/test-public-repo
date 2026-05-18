@@ -307,9 +307,16 @@ function updatePackageVersions(npmVersion, pypiVersion) {
 
 function updateNodeVersion(version) {
   const packageJsonPath = resolve(repoRoot, config.packages.npm.path, "package.json");
+  const indexPath = resolve(repoRoot, config.packages.npm.path, "src/index.js");
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
   packageJson.version = version;
   writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, "utf8");
+
+  const indexFile = readFileSync(indexPath, "utf8").replace(
+    /^const SDK_VERSION = ".*";$/m,
+    `const SDK_VERSION = "${version}";`
+  );
+  writeFileSync(indexPath, indexFile, "utf8");
 }
 
 function updatePythonVersion(version) {
