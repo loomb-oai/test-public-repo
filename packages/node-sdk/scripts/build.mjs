@@ -7,7 +7,7 @@ writeFileSync(
   resolve(outDir, "build-info.json"),
   JSON.stringify(
     {
-      package: "@demo/node-sdk",
+      package: "dloomb_node_test",
       builtAt: new Date().toISOString()
     },
     null,
@@ -17,4 +17,3 @@ writeFileSync(
 );
 
 console.log(`Wrote ${resolve(outDir, "build-info.json")}`);
-
