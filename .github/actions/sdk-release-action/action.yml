@@ -35,6 +35,12 @@ outputs:
   release-tag:
     description: "Tag handled by the release action"
     value: ${{ steps.run.outputs.release-tag }}
+  publish-registries:
+    description: "Whether registry publishing should run for this invocation"
+    value: ${{ steps.run.outputs.publish-registries }}
+  pypi-packages-dir:
+    description: "Directory containing built PyPI distributions"
+    value: ${{ steps.run.outputs.pypi-packages-dir }}
 
 runs:
   using: "composite"
@@ -124,9 +130,3 @@ runs:
         npm publish "${{ steps.run.outputs.npm-artifact }}" \
           --tag "${{ steps.run.outputs.npm-dist-tag }}" \
           --access "${{ steps.run.outputs.npm-access }}"
-
-    - name: Publish Python package distributions to PyPI
-      if: ${{ steps.run.outputs.publish-registries == 'true' }}
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        packages-dir: ${{ steps.run.outputs.pypi-packages-dir }}
