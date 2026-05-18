@@ -19,9 +19,7 @@ repo for both GitHub Releases and registry publishing instead.
 The integrator-facing surface is now intentionally small:
 
 - `.github/workflows/release-bot.yml`
-  - the copy-paste workflow entrypoint that forwards into the reusable release workflow
-- `.github/workflows/sdk-release.yml`
-  - local reusable workflow standing in for the future hosted release workflow repository
+  - the single copy-paste workflow entrypoint for orchestration and registry jobs
 - `.github/workflows/nightly-beta-scheduler.yml`
   - daily cron wrapper that dispatches `release-bot`
 - `.github/workflows/weekly-rc-scheduler.yml`
@@ -35,28 +33,10 @@ The integrator-facing surface is now intentionally small:
 - `.release-please-manifest.json`
   - Release Please released-version state for the sample packages
 
-In this sample, `release-bot.yml` calls the local reusable workflow:
-
-```yaml
-jobs:
-  release:
-    uses: ./.github/workflows/sdk-release.yml
-    with:
-      config-file: .github/sdk-release.yml
-    secrets: inherit
-```
-
-Once the release system lives in its own repository, that same integration
-shape becomes:
-
-```yaml
-jobs:
-  release:
-    uses: your-org/sdk-release-action/.github/workflows/release-bot.yml@v1
-    with:
-      config-file: .github/sdk-release.yml
-    secrets: inherit
-```
+PyPI publishing stays as a top-level job in `release-bot.yml`. PyPI Trusted
+Publishing does not currently support reusable workflows as the publishing
+workflow identity, so this sample keeps orchestration, artifact handoff, and
+the final PyPI publish job together in one workflow file.
 
 ## Control Plane
 
@@ -295,15 +275,14 @@ contains:
 1. Start with `.github/sdk-release.yml`.
 2. Read the two scheduler workflows.
 3. Read `.github/workflows/release-bot.yml`.
-4. Read `.github/workflows/sdk-release.yml` to see the internal reusable workflow boundary.
-5. Follow `scripts/sdk-release-action.mjs` to see how one workflow run resolves:
+4. Follow `scripts/sdk-release-action.mjs` to see how one workflow run resolves:
    - manual workflow dispatches
    - scheduler `repository_dispatch` events
    - pushes to `rc/**`
    - mirrored release events
-6. Inspect `dist/release-manifest.json` after a run to see the npm/PyPI release
+5. Inspect `dist/release-manifest.json` after a run to see the npm/PyPI release
    payload that drives publish steps.
-7. Inspect `dist/mirror-propagation.json` to see the exact mirrored branch,
+6. Inspect `dist/mirror-propagation.json` to see the exact mirrored branch,
    tag, and target-release payload.
 
 ## What This Demonstrates
@@ -318,5 +297,6 @@ small so the release contract is easy to inspect:
 - the workflow is a stable CI entrypoint
 - the repo config owns release policy
 - Release Please owns release-plan maintenance from Conventional Commits
-- the action owns event routing, build orchestration, and registry execution
+- the action owns event routing, build orchestration, and npm registry execution
+- the workflow owns the caller-level PyPI Trusted Publishing job
 - the mirror repo remains an exact Git mirror of the private source repository
