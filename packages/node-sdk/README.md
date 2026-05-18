@@ -3,7 +3,8 @@
 Small npm package used by the SDK release action simulation.
 
 ```js
-import { get_sdk_version } from "@demo/node-sdk";
+import { get_sdk_version, node_hello_world } from "@demo/node-sdk";
 
+node_hello_world();
 get_sdk_version();
 ```

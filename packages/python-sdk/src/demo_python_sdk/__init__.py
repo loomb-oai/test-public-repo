@@ -1,7 +1,7 @@
 __version__ = "0.1.0"
 
 
-def hello_from_python(name: str = "release-action") -> str:
+def python_hello_world(name: str = "release-action") -> str:
     return f"hello {name} from the demo Python SDK"
 
 
