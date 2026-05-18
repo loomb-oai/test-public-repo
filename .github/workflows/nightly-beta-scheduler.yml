@@ -2,7 +2,7 @@ name: nightly-beta-scheduler
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "* * * * *"
       timezone: "America/Los_Angeles"
   workflow_dispatch:
 

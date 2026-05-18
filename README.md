@@ -39,8 +39,8 @@ The near-term sample uses tiny scheduler workflows inside the private repo. For
 the current end-to-end verification pass, they run on an intentionally faster
 test cadence:
 
-1. `nightly-beta-scheduler.yml` targets every 10 minutes.
-2. `weekly-rc-scheduler.yml` targets the top of every hour.
+1. `nightly-beta-scheduler.yml` targets every minute.
+2. `weekly-rc-scheduler.yml` targets every 10 minutes.
 3. Each scheduler uses the workflow `GITHUB_TOKEN` to dispatch the same repo's
    `release-bot` workflow with:
 
@@ -143,11 +143,11 @@ The sample models:
    - npm example: `0.2.0-alpha.20260515.1`
    - PyPI example: `0.2.0a2026051501`
 2. `beta`
-   - temporary verification cadence targeting every 10 minutes
+   - temporary verification cadence targeting every minute
    - npm example: `0.2.0-beta.20260515`
    - PyPI example: `0.2.0b20260515`
 3. `rc`
-   - temporary verification cadence targeting hourly branch cuts into `rc/{version}`
+   - temporary verification cadence targeting branch cuts every 10 minutes into `rc/{version}`
    - scheduled cuts no-op when the existing RC branch already matches the current Release Please candidate commit
    - branch contents are snapped from the Release Please candidate commit
    - refreshes when critical fixes land on `rc/**`
