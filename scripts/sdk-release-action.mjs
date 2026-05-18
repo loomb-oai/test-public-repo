@@ -109,16 +109,20 @@ async function main() {
 
 async function runEphemeralChannel(channel) {
   const baseVersion = releasePleaseCandidateVersion();
-  const date = dateStamp();
+  const releaseTime = new Date();
+  const date = dateStamp(releaseTime);
+  const time = channel === "beta" ? timeStamp(releaseTime) : null;
   const sequence = channel === "alpha" ? nextAlphaSequence(baseVersion, date) : null;
   const tag = renderChannelTag(channel, {
     version: baseVersion,
     date,
+    time,
     sequence
   });
   const npmVersion = tag.replace(/^v/, "");
   const pypiVersion = toPyPiVersion(channel, baseVersion, {
     date,
+    time,
     sequence
   });
 
@@ -707,14 +711,14 @@ function releaseMetadataFromTag(tag) {
     });
   }
 
-  match = tag.match(/^v(\d+\.\d+\.\d+)-beta\.(\d{8})$/);
+  match = tag.match(/^v(\d+\.\d+\.\d+)-beta\.(\d{8})(?:\.(\d{4}))?$/);
   if (match) {
-    const [, baseVersion, date] = match;
+    const [, baseVersion, date, time = null] = match;
     return buildReleaseMetadata({
       channel: "beta",
       baseVersion,
       npmVersion: tag.replace(/^v/, ""),
-      pypiVersion: toPyPiVersion("beta", baseVersion, { date }),
+      pypiVersion: toPyPiVersion("beta", baseVersion, { date, time }),
       tag,
       sourceBranch: config.channels.beta.sourceBranch,
       note: "Mirrored release event for a beta package publish."
@@ -932,12 +936,16 @@ function renderPattern(pattern, values) {
   );
 }
 
-function toPyPiVersion(channel, baseVersion, { date = null, sequence = null, iteration = null } = {}) {
+function toPyPiVersion(
+  channel,
+  baseVersion,
+  { date = null, time = null, sequence = null, iteration = null } = {}
+) {
   switch (channel) {
     case "alpha":
       return `${baseVersion}a${date}${String(sequence).padStart(2, "0")}`;
     case "beta":
-      return `${baseVersion}b${date}`;
+      return `${baseVersion}b${date}${time ?? ""}`;
     case "rc":
       return `${baseVersion}rc${iteration}`;
     case "production":
@@ -1075,15 +1083,30 @@ function titleCase(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function dateStamp() {
+function dateStamp(value = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Los_Angeles",
     year: "numeric",
     month: "2-digit",
     day: "2-digit"
   })
-    .format(new Date())
+    .format(value)
     .replaceAll("-", "");
+}
+
+function timeStamp(value = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(value);
+  const values = Object.fromEntries(
+    parts
+      .filter(({ type }) => type === "hour" || type === "minute")
+      .map(({ type, value: partValue }) => [type, partValue])
+  );
+  return `${values.hour}${values.minute}`;
 }
 
 function setOutput(name, value) {

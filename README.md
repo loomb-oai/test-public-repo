@@ -144,8 +144,8 @@ The sample models:
    - PyPI example: `0.2.0a2026051501`
 2. `beta`
    - temporary verification cadence targeting every minute
-   - npm example: `0.2.0-beta.20260515`
-   - PyPI example: `0.2.0b20260515`
+   - npm example: `0.2.0-beta.20260515.1801`
+   - PyPI example: `0.2.0b202605151801`
 3. `rc`
    - temporary verification cadence targeting branch cuts every 10 minutes into `rc/{version}`
    - scheduled cuts no-op when the existing RC branch already matches the current Release Please candidate commit
