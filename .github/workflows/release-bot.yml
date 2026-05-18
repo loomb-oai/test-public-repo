@@ -35,10 +35,64 @@ permissions:
 
 jobs:
   release:
-    uses: ./.github/workflows/sdk-release.yml
-    with:
-      config-file: .github/sdk-release.yml
-      operation: ${{ github.event.inputs.operation || github.event.client_payload.operation || 'auto' }}
-      rc-branch: ${{ github.event.inputs['rc-branch'] || '' }}
-      release-tag: ${{ github.event.release.tag_name || '' }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    environment: main
+    outputs:
+      publish-registries: ${{ steps.sdk-release.outputs.publish-registries }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node for npm Trusted Publishing
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python build tool
+        run: python3 -m pip install build
+
+      - name: Run local SDK release action
+        id: sdk-release
+        uses: ./.github/actions/sdk-release-action
+        with:
+          mode: ${{ github.event.inputs.operation || github.event.client_payload.operation || 'auto' }}
+          config-file: .github/sdk-release.yml
+          rc-branch: ${{ github.event.inputs['rc-branch'] || '' }}
+          release-tag: ${{ github.event.release.tag_name || '' }}
+          github-app-id: ${{ secrets.SDK_RELEASE_GH_APP_ID }}
+          github-app-private-key: ${{ secrets.SDK_RELEASE_GH_APP_PRIVATE_KEY }}
+
+      - name: Upload PyPI distributions
+        if: ${{ steps.sdk-release.outputs.publish-registries == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: pypi-dists
+          path: ${{ steps.sdk-release.outputs.pypi-packages-dir }}
+
+  publish-pypi:
+    needs: release
+    if: ${{ needs.release.outputs.publish-registries == 'true' }}
+    runs-on: ubuntu-latest
+    environment: main
+    permissions:
+      id-token: write
+    steps:
+      - name: Download PyPI distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: pypi-dists
+          path: dist/pypi
+
+      - name: Publish Python package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/pypi
