@@ -227,6 +227,8 @@ and create Releases there.
 The local action now mints an installation token with
 `actions/create-github-app-token@v3`, then:
 
+- gives Release Please a token that can create/update the release PR even when
+  repository policy blocks `GITHUB_TOKEN` from creating pull requests
 - pushes the selected source branch into the mirror repo
 - pushes the release tag into the mirror repo
 - creates the mirror-side GitHub Release if it does not already exist

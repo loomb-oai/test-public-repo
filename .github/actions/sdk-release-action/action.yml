@@ -62,23 +62,6 @@ runs:
 
         printf 'operation=%s\n' "$operation" >> "$GITHUB_OUTPUT"
 
-    - name: Refresh Release Please plan
-      id: release-please-plan
-      if: >-
-        ${{
-          github.repository == 'loomb-oai/test-private-repo' &&
-          steps.operation.outputs.operation != 'final' &&
-          steps.operation.outputs.operation != 'registry-publish' &&
-          github.event_name != 'release' &&
-          !(github.event_name == 'push' && startsWith(github.ref_name, 'rc/'))
-        }}
-      uses: googleapis/release-please-action@v4
-      with:
-        token: ${{ github.token }}
-        config-file: ${{ inputs.release-please-config-file }}
-        manifest-file: ${{ inputs.release-please-manifest-file }}
-        skip-github-release: true
-
     - name: Create GitHub App token
       id: github-app-token
       if: >-
@@ -93,6 +76,25 @@ runs:
         private-key: ${{ inputs.github-app-private-key }}
         owner: ${{ github.repository_owner }}
         permission-contents: write
+        permission-issues: write
+        permission-pull-requests: write
+
+    - name: Refresh Release Please plan
+      id: release-please-plan
+      if: >-
+        ${{
+          github.repository == 'loomb-oai/test-private-repo' &&
+          steps.operation.outputs.operation != 'final' &&
+          steps.operation.outputs.operation != 'registry-publish' &&
+          github.event_name != 'release' &&
+          !(github.event_name == 'push' && startsWith(github.ref_name, 'rc/'))
+        }}
+      uses: googleapis/release-please-action@v4
+      with:
+        token: ${{ steps.github-app-token.outputs.token || github.token }}
+        config-file: ${{ inputs.release-please-config-file }}
+        manifest-file: ${{ inputs.release-please-manifest-file }}
+        skip-github-release: true
 
     - id: run
       shell: bash
