@@ -1,14 +1,4 @@
 name: release-bot
-run-name: >-
-  ${{ github.event_name == 'workflow_dispatch' && format('[manual] [{0}] Release Bot', inputs.operation) ||
-      github.event_name == 'repository_dispatch' && format('[auto] [{0}] Release Bot', github.event.client_payload.operation) ||
-      github.event_name == 'release' && contains(github.event.release.tag_name, '-alpha.') && '[auto] [publish-alpha] Release Bot' ||
-      github.event_name == 'release' && contains(github.event.release.tag_name, '-dev.') && '[auto] [publish-nightly] Release Bot' ||
-      github.event_name == 'release' && contains(github.event.release.tag_name, '-rc.') && '[auto] [publish-rc] Release Bot' ||
-      github.event_name == 'release' && '[auto] [publish-prod] Release Bot' ||
-      github.event_name == 'push' && startsWith(github.ref_name, 'rc/') && '[auto] [publish-rc] Release Bot' ||
-      github.event_name == 'push' && github.ref_name == 'main' && '[auto] [refresh-plan] Release Bot' ||
-      '[auto] [unknown] Release Bot' }}
 
 on:
   workflow_dispatch:
@@ -37,88 +27,20 @@ on:
     types:
       - published
 
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-  id-token: write
-
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    environment: main
-    outputs:
-      publish-registries: ${{ steps.sdk-release.outputs.publish-registries }}
-      release-context: ${{ steps.sdk-release.outputs.release-context }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.release.tag_name || github.ref }}
-
-      - name: Prepare SDK release
-        id: sdk-release
-        uses: loomb-oai/sdk-release-action@main
-        with:
-          mode: ${{ github.event.inputs.operation || github.event.client_payload.operation || 'auto' }}
-          source-repository: loomb-oai/test-private-repo
-          config-file: .github/sdk-release.yml
-          rc-branch: ${{ github.event.inputs['rc-branch'] || '' }}
-          release-tag: ${{ github.event.release.tag_name || '' }}
-          github-app-id: ${{ secrets.SDK_RELEASE_GH_APP_ID }}
-          github-app-private-key: ${{ secrets.SDK_RELEASE_GH_APP_PRIVATE_KEY }}
-          prepare-only: true
-
-  node-sdk:
-    needs: prepare
-    runs-on: ubuntu-latest
-    environment: main
+  release:
     permissions:
-      contents: read
+      contents: write
+      issues: write
+      pull-requests: write
       id-token: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.release.tag_name || github.ref }}
-
-      - name: Publish npm package lane
-        uses: loomb-oai/sdk-release-action/node@main
-        with:
-          release-context: ${{ needs.prepare.outputs.release-context }}
-          publish-registries: ${{ needs.prepare.outputs.publish-registries }}
-          package-dir: packages/node-sdk
-          package-name: "@loomb-oai/node-test"
-          version-file: src/index.js
-
-  python-sdk:
-    needs: prepare
-    runs-on: ubuntu-latest
-    outputs:
-      publish-ready: ${{ steps.python.outputs.publish-ready }}
-      artifact-name: ${{ steps.python.outputs.artifact-name }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.release.tag_name || github.ref }}
-
-      - name: Build Python package lane
-        id: python
-        uses: loomb-oai/sdk-release-action/python@main
-        with:
-          release-context: ${{ needs.prepare.outputs.release-context }}
-          publish-registries: ${{ needs.prepare.outputs.publish-registries }}
-          package-dir: packages/python-sdk
-          package-name: loomb-test
-          version-file: src/demo_python_sdk/__init__.py
+    uses: loomb-oai/sdk-release-action/.github/workflows/release-bot.yml@main
+    with:
+      config-file: .github/sdk-release.yml
 
   publish-pypi:
-    needs: python-sdk
-    if: ${{ needs.python-sdk.outputs.publish-ready == 'true' }}
+    needs: release
+    if: ${{ needs.release.outputs.pypi-publish-ready == 'true' }}
     runs-on: ubuntu-latest
     environment: main
     permissions:
@@ -127,7 +49,7 @@ jobs:
       - name: Download PyPI distributions
         uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.python-sdk.outputs.artifact-name }}
+          name: ${{ needs.release.outputs.pypi-artifact-name }}
           path: dist/pypi
 
       - name: Publish Python package distributions to PyPI
