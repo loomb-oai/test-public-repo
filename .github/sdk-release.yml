@@ -11,7 +11,7 @@ releases:
 
 schedules:
   nightly-beta:
-    operation: beta
+    operation: publish-beta
     cron: "5,10,15,25,30,35,45,50,55 * * * *"
     timezone: America/Los_Angeles
 

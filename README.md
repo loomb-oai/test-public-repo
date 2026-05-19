@@ -53,7 +53,7 @@ test cadence:
 {
   "event_type": "sdk-release",
   "client_payload": {
-    "operation": "beta",
+    "operation": "publish-beta",
     "schedule-id": "nightly-beta"
   }
 }
@@ -105,10 +105,10 @@ only decorates it for the selected channel.
 
 ```mermaid
 flowchart TD
-  A["nightly-beta-scheduler"] --> C["repository_dispatch: beta"]
+  A["nightly-beta-scheduler"] --> C["repository_dispatch: publish-beta"]
   B["weekly-rc-scheduler"] --> D["repository_dispatch: cut-rc"]
-  E["Manual workflow dispatch"] --> F["alpha or final"]
-  G["Push to rc/**"] --> H["refresh RC"]
+  E["Manual workflow dispatch"] --> F["publish-alpha or publish-prod"]
+  G["Push to rc/**"] --> H["publish-rc"]
   C --> I["release-bot in private repo"]
   D --> I
   F --> I
@@ -126,7 +126,7 @@ The release policy still names the schedules in `.github/sdk-release.yml`:
 ```yaml
 schedules:
   nightly-beta:
-    operation: beta
+    operation: publish-beta
     cron: "0 18 * * *"
     timezone: America/Los_Angeles
 
@@ -143,22 +143,22 @@ send the matching `schedule-id` into `release-bot`.
 
 The sample models:
 
-1. `alpha`
+1. `publish-alpha`
    - manual immediate validation from `main`
    - npm example: `0.2.0-alpha.20260515.1`
    - PyPI example: `0.2.0a2026051501`
-2. `beta`
+2. `publish-beta`
    - temporary verification cadence targeting every 5-minute slot except the RC minutes
    - npm example: `0.2.0-beta.20260515.1801`
    - PyPI example: `0.2.0b202605151801`
-3. `rc`
+3. `cut-rc` and `publish-rc`
    - temporary verification cadence targeting branch cuts every 20 minutes into `rc/{version}`
    - scheduled cuts no-op when the existing RC branch already matches the current Release Please candidate commit
    - branch contents are snapped from the Release Please candidate commit
    - refreshes when critical fixes land on `rc/**`
    - npm example: `0.2.0-rc.1`
    - PyPI example: `0.2.0rc1`
-4. `production`
+4. `publish-prod`
    - manual finalization from a selected RC branch
    - promotes the preserved Release Please candidate state on that RC branch
    - npm and PyPI example: `0.2.0`

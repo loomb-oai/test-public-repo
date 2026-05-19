@@ -13,7 +13,7 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger release-bot beta
+      - name: Trigger release-bot publish-beta
         uses: actions/github-script@v8
         with:
           script: |
@@ -22,7 +22,7 @@ jobs:
               repo: context.repo.repo,
               event_type: "sdk-release",
               client_payload: {
-                operation: "beta",
+                operation: "publish-beta",
                 "schedule-id": "nightly-beta"
               }
             });
