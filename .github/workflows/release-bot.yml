@@ -75,6 +75,7 @@ jobs:
         uses: loomb-oai/sdk-release-action@main
         with:
           mode: ${{ github.event.inputs.operation || github.event.client_payload.operation || 'auto' }}
+          source-repository: loomb-oai/test-private-repo
           config-file: .github/sdk-release.yml
           rc-branch: ${{ github.event.inputs['rc-branch'] || '' }}
           release-tag: ${{ github.event.release.tag_name || '' }}
