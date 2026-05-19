@@ -3,7 +3,7 @@ run-name: >-
   ${{ github.event_name == 'workflow_dispatch' && format('[manual] [{0}] Release Bot', inputs.operation) ||
       github.event_name == 'repository_dispatch' && format('[auto] [{0}] Release Bot', github.event.client_payload.operation) ||
       github.event_name == 'release' && contains(github.event.release.tag_name, '-alpha.') && '[auto] [publish-alpha] Release Bot' ||
-      github.event_name == 'release' && contains(github.event.release.tag_name, '-beta.') && '[auto] [publish-beta] Release Bot' ||
+      github.event_name == 'release' && contains(github.event.release.tag_name, '-dev.') && '[auto] [publish-nightly] Release Bot' ||
       github.event_name == 'release' && contains(github.event.release.tag_name, '-rc.') && '[auto] [publish-rc] Release Bot' ||
       github.event_name == 'release' && '[auto] [publish-prod] Release Bot' ||
       github.event_name == 'push' && startsWith(github.ref_name, 'rc/') && '[auto] [publish-rc] Release Bot' ||
@@ -19,7 +19,7 @@ on:
         type: choice
         options:
           - publish-alpha
-          - publish-beta
+          - publish-nightly
           - cut-rc
           - publish-prod
       rc-branch:
@@ -70,9 +70,9 @@ jobs:
       - name: Install Python build tool
         run: python3 -m pip install build
 
-      - name: Run local SDK release action
+      - name: Run SDK release action
         id: sdk-release
-        uses: ./.github/actions/sdk-release-action
+        uses: loomb-oai/sdk-release-action@main
         with:
           mode: ${{ github.event.inputs.operation || github.event.client_payload.operation || 'auto' }}
           config-file: .github/sdk-release.yml

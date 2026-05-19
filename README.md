@@ -1,8 +1,8 @@
 # SDK Release Action Simulation
 
-This repository models the intended integration shape for a future
-`sdk-release-action` plus a GitHub App control plane. The local action now
-wraps Release Please instead of standing alone as a fake version oracle.
+This repository models the intended integration shape for
+`loomb-oai/sdk-release-action` plus a GitHub App control plane. The shared
+action wraps Release Please instead of standing alone as a fake version oracle.
 
 This sample uses two repositories:
 
@@ -20,14 +20,14 @@ The integrator-facing surface is now intentionally small:
 
 - `.github/workflows/release-bot.yml`
   - the single copy-paste workflow entrypoint for orchestration and registry jobs
-- `.github/workflows/nightly-beta-scheduler.yml`
+- `.github/workflows/nightly-scheduler.yml`
   - daily cron wrapper that dispatches `release-bot`
 - `.github/workflows/weekly-rc-scheduler.yml`
   - Monday cron wrapper that dispatches `release-bot`
 - `.github/sdk-release.yml`
   - repo-owned release policy, schedules, package definitions, and registry settings
-- `.github/actions/sdk-release-action`
-  - a local stand-in for the future hosted action
+- `loomb-oai/sdk-release-action@main`
+  - the shared action implementation consumed by this sample workflow
 - `.github/release-please-config.json`
   - Release Please manifest-mode package configuration
 - `.release-please-manifest.json`
@@ -44,7 +44,7 @@ The near-term sample uses tiny scheduler workflows inside the private repo. For
 the current end-to-end verification pass, they run on an intentionally faster
 test cadence:
 
-1. `nightly-beta-scheduler.yml` targets the non-RC five-minute slots: `5, 10, 15, 25, 30, 35, 45, 50, 55`.
+1. `nightly-scheduler.yml` targets the non-RC five-minute slots: `5, 10, 15, 25, 30, 35, 45, 50, 55`.
 2. `weekly-rc-scheduler.yml` targets minute offsets `0, 20, 40`.
 3. Each scheduler uses the workflow `GITHUB_TOKEN` to dispatch the same repo's
    `release-bot` workflow with:
@@ -53,8 +53,8 @@ test cadence:
 {
   "event_type": "sdk-release",
   "client_payload": {
-    "operation": "publish-beta",
-    "schedule-id": "nightly-beta"
+    "operation": "publish-nightly",
+    "schedule-id": "nightly"
   }
 }
 ```
@@ -70,7 +70,7 @@ sample.
 
 ## Release Please
 
-The local `sdk-release-action` wraps
+The shared `sdk-release-action` wraps
 `googleapis/release-please-action@v4` in manifest mode:
 
 - it reads `.github/release-please-config.json`
@@ -84,9 +84,9 @@ The local `sdk-release-action` wraps
 The sample release train now treats Release Please as the candidate-version
 authority:
 
-- when Release Please refreshes a release PR, the local action reads that PR
+- when Release Please refreshes a release PR, the shared action reads that PR
   head's `.release-please-manifest.json`
-- alpha, beta, and RC versions are derived from the candidate version found in
+- alpha, nightly, and RC versions are derived from the candidate version found in
   that Release Please-managed manifest
 - weekly RC cuts fork the RC branch from that same Release Please candidate
   commit, preserving the exact stable-version/changelog state Release Please
@@ -105,7 +105,7 @@ only decorates it for the selected channel.
 
 ```mermaid
 flowchart TD
-  A["nightly-beta-scheduler"] --> C["repository_dispatch: publish-beta"]
+  A["nightly-scheduler"] --> C["repository_dispatch: publish-nightly"]
   B["weekly-rc-scheduler"] --> D["repository_dispatch: cut-rc"]
   E["Manual workflow dispatch"] --> F["publish-alpha or publish-prod"]
   G["Push to rc/**"] --> H["publish-rc"]
@@ -125,8 +125,8 @@ The release policy still names the schedules in `.github/sdk-release.yml`:
 
 ```yaml
 schedules:
-  nightly-beta:
-    operation: publish-beta
+  nightly:
+    operation: publish-nightly
     cron: "0 18 * * *"
     timezone: America/Los_Angeles
 
@@ -147,10 +147,10 @@ The sample models:
    - manual immediate validation from `main`
    - npm example: `0.2.0-alpha.20260515.1`
    - PyPI example: `0.2.0a2026051501`
-2. `publish-beta`
+2. `publish-nightly`
    - temporary verification cadence targeting every 5-minute slot except the RC minutes
-   - npm example: `0.2.0-beta.20260515.1801`
-   - PyPI example: `0.2.0b202605151801`
+   - npm example: `0.2.0-dev.20260515.1801`
+   - PyPI example: `0.2.0.dev202605151801`
 3. `cut-rc` and `publish-rc`
    - temporary verification cadence targeting branch cuts every 20 minutes into `rc/{version}`
    - scheduled cuts no-op when the existing RC branch already matches the current Release Please candidate commit
@@ -234,7 +234,7 @@ The App replaces any long-lived cross-repo token. It should:
 - mirror refs into the target repo
 - create the target GitHub Release that triggers registry publishing
 
-The sample workflow passes these CI secrets into the local action when
+The sample workflow passes these CI secrets into the shared action when
 mirror-targeted release behavior is configured:
 
 - `SDK_RELEASE_GH_APP_ID`
@@ -248,7 +248,7 @@ permissions should include:
 - `Issues: Read and write` for the Release Please issue/comment surfaces it may use
 - `Workflows: Read and write` so mirrored pushes can update `.github/workflows/*`
 
-The local action now mints an installation token with
+The shared action now mints an installation token with
 `actions/create-github-app-token@v3`, then:
 
 - gives Release Please a token that can create/update the release PR even when
@@ -275,7 +275,7 @@ contains:
 1. Start with `.github/sdk-release.yml`.
 2. Read the two scheduler workflows.
 3. Read `.github/workflows/release-bot.yml`.
-4. Follow `scripts/sdk-release-action.mjs` to see how one workflow run resolves:
+4. Follow `loomb-oai/sdk-release-action` to see how one workflow run resolves:
    - manual workflow dispatches
    - scheduler `repository_dispatch` events
    - pushes to `rc/**`

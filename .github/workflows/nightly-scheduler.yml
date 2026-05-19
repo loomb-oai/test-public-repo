@@ -1,4 +1,4 @@
-name: nightly-beta-scheduler
+name: nightly-scheduler
 
 on:
   schedule:
@@ -13,7 +13,7 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger release-bot publish-beta
+      - name: Trigger release-bot publish-nightly
         uses: actions/github-script@v8
         with:
           script: |
@@ -22,7 +22,7 @@ jobs:
               repo: context.repo.repo,
               event_type: "sdk-release",
               client_payload: {
-                operation: "publish-beta",
-                "schedule-id": "nightly-beta"
+                operation: "publish-nightly",
+                "schedule-id": "nightly"
               }
             });
