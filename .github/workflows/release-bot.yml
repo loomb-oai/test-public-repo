@@ -1,5 +1,14 @@
 name: release-bot
-run-name: ${{ github.event_name == 'workflow_dispatch' && format('[manual] [{0}] Release Bot', inputs.operation) || github.event_name == 'repository_dispatch' && format('[auto] [{0}] Release Bot', github.event.client_payload.operation) || github.event_name == 'release' && format('[release] [{0}] Release Bot', github.event.release.tag_name) || github.event_name == 'push' && format('[push] [{0}] Release Bot', github.ref_name) || '[auto] [unknown] Release Bot' }}
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch' && format('[manual] [{0}] Release Bot', inputs.operation) ||
+      github.event_name == 'repository_dispatch' && format('[auto] [{0}] Release Bot', github.event.client_payload.operation) ||
+      github.event_name == 'release' && contains(github.event.release.tag_name, '-alpha.') && '[auto] [publish-alpha] Release Bot' ||
+      github.event_name == 'release' && contains(github.event.release.tag_name, '-beta.') && '[auto] [publish-beta] Release Bot' ||
+      github.event_name == 'release' && contains(github.event.release.tag_name, '-rc.') && '[auto] [publish-rc] Release Bot' ||
+      github.event_name == 'release' && '[auto] [publish-prod] Release Bot' ||
+      github.event_name == 'push' && startsWith(github.ref_name, 'rc/') && '[auto] [publish-rc] Release Bot' ||
+      github.event_name == 'push' && github.ref_name == 'main' && '[auto] [refresh-plan] Release Bot' ||
+      '[auto] [unknown] Release Bot' }}
 
 on:
   workflow_dispatch:
@@ -9,12 +18,12 @@ on:
         required: true
         type: choice
         options:
-          - alpha
-          - beta
+          - publish-alpha
+          - publish-beta
           - cut-rc
-          - final
+          - publish-prod
       rc-branch:
-        description: "Required for final releases, e.g. rc/0.2.0"
+        description: "Required for publish-prod releases, e.g. rc/0.2.0"
         required: false
         type: string
   repository_dispatch:

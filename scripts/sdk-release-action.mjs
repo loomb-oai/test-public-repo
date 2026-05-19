@@ -53,11 +53,11 @@ const githubSha = process.env.GITHUB_SHA ?? git(["rev-parse", "HEAD"], { encodin
 const supportedModes = new Set([
   "noop",
   "refresh-plan",
-  "alpha",
-  "beta",
+  "publish-alpha",
+  "publish-beta",
   "cut-rc",
-  "refresh-rc",
-  "final",
+  "publish-rc",
+  "publish-prod",
   "registry-publish"
 ]);
 
@@ -86,19 +86,19 @@ async function main() {
   }
 
   switch (mode) {
-    case "alpha":
+    case "publish-alpha":
       await runEphemeralChannel("alpha");
       break;
-    case "beta":
+    case "publish-beta":
       await runEphemeralChannel("beta");
       break;
     case "cut-rc":
       await cutRcRelease();
       break;
-    case "refresh-rc":
+    case "publish-rc":
       await refreshRcRelease();
       break;
-    case "final":
+    case "publish-prod":
       await finalizeRcRelease();
       break;
     case "registry-publish":
@@ -1020,7 +1020,7 @@ function resolveMode(rawMode) {
   }
 
   if (eventName === "push" && githubRefName.startsWith("rc/")) {
-    return "refresh-rc";
+    return "publish-rc";
   }
 
   if (eventName === "push" && githubRefName === "main") {

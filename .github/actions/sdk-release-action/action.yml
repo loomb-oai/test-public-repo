@@ -22,7 +22,7 @@ inputs:
     description: "Optional local override for registry-publish runs."
     required: false
   rc-branch:
-    description: "Optional RC branch override for final release runs."
+    description: "Optional RC branch override for publish-prod release runs."
     required: false
   github-app-id:
     description: "GitHub App ID used for future cross-repo release operations."
@@ -61,7 +61,7 @@ runs:
           elif [ "$GITHUB_EVENT_NAME" = "repository_dispatch" ]; then
             operation="${{ github.event.client_payload.operation }}"
           elif [ "$GITHUB_EVENT_NAME" = "push" ] && [[ "$GITHUB_REF_NAME" == rc/* ]]; then
-            operation="refresh-rc"
+            operation="publish-rc"
           elif [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF_NAME" = "main" ]; then
             operation="refresh-plan"
           elif [ "$GITHUB_EVENT_NAME" = "release" ]; then
@@ -99,7 +99,7 @@ runs:
       if: >-
         ${{
           github.repository == 'loomb-oai/test-private-repo' &&
-          steps.operation.outputs.operation != 'final' &&
+          steps.operation.outputs.operation != 'publish-prod' &&
           steps.operation.outputs.operation != 'registry-publish' &&
           github.event_name != 'release' &&
           !(github.event_name == 'push' && startsWith(github.ref_name, 'rc/'))
