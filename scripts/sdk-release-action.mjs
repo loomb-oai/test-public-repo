@@ -54,7 +54,7 @@ const supportedModes = new Set([
   "noop",
   "refresh-plan",
   "publish-alpha",
-  "publish-beta",
+  "publish-nightly",
   "cut-rc",
   "publish-rc",
   "publish-prod",
@@ -89,8 +89,8 @@ async function main() {
     case "publish-alpha":
       await runEphemeralChannel("alpha");
       break;
-    case "publish-beta":
-      await runEphemeralChannel("beta");
+    case "publish-nightly":
+      await runEphemeralChannel("nightly");
       break;
     case "cut-rc":
       await cutRcRelease();
@@ -111,7 +111,7 @@ async function runEphemeralChannel(channel) {
   const baseVersion = releasePleaseCandidateVersion();
   const releaseTime = new Date();
   const date = dateStamp(releaseTime);
-  const time = channel === "beta" ? timeStamp(releaseTime) : null;
+  const time = channel === "nightly" ? timeStamp(releaseTime) : null;
   const sequence = channel === "alpha" ? nextAlphaSequence(baseVersion, date) : null;
   const tag = renderChannelTag(channel, {
     version: baseVersion,
@@ -126,11 +126,11 @@ async function runEphemeralChannel(channel) {
     sequence
   });
 
-  if (channel === "beta" && config.channels.beta.onlyIfChanged && !hasChangesSinceLastBeta()) {
+  if (channel === "nightly" && config.channels.nightly.onlyIfChanged && !hasChangesSinceLastNightly()) {
     writeSummary([
-      "# Beta skipped",
+      "# Nightly skipped",
       "",
-      "No repository changes were found since the most recent beta tag."
+      "No repository changes were found since the most recent nightly tag."
     ]);
     setOutput("release-skipped", "true");
     return;
@@ -144,7 +144,7 @@ async function runEphemeralChannel(channel) {
     pypiVersion,
     tag,
     sourceBranch: config.channels[channel].sourceBranch,
-    note: channel === "alpha" ? "Manual alpha build." : "Scheduled end-of-day beta build."
+    note: channel === "alpha" ? "Manual alpha build." : "Scheduled end-of-day nightly build."
   });
   writeReleaseMetadata(metadata);
   await publishFromMetadata(metadata);
@@ -711,17 +711,17 @@ function releaseMetadataFromTag(tag) {
     });
   }
 
-  match = tag.match(/^v(\d+\.\d+\.\d+)-beta\.(\d{8})(?:\.(\d{4}))?$/);
+  match = tag.match(/^v(\d+\.\d+\.\d+)-nightly\.(\d{8})(?:\.(\d{4}))?$/);
   if (match) {
     const [, baseVersion, date, time = null] = match;
     return buildReleaseMetadata({
-      channel: "beta",
+      channel: "nightly",
       baseVersion,
       npmVersion: tag.replace(/^v/, ""),
-      pypiVersion: toPyPiVersion("beta", baseVersion, { date, time }),
+      pypiVersion: toPyPiVersion("nightly", baseVersion, { date, time }),
       tag,
-      sourceBranch: config.channels.beta.sourceBranch,
-      note: "Mirrored release event for a beta package publish."
+      sourceBranch: config.channels.nightly.sourceBranch,
+      note: "Mirrored release event for a nightly package publish."
     });
   }
 
@@ -944,8 +944,8 @@ function toPyPiVersion(
   switch (channel) {
     case "alpha":
       return `${baseVersion}a${date}${String(sequence).padStart(2, "0")}`;
-    case "beta":
-      return `${baseVersion}b${date}${time ?? ""}`;
+    case "nightly":
+      return `${baseVersion}.dev${date}${time ?? ""}`;
     case "rc":
       return `${baseVersion}rc${iteration}`;
     case "production":
@@ -975,8 +975,8 @@ function nextRcIteration(baseVersion) {
   return maxIteration + 1;
 }
 
-function hasChangesSinceLastBeta() {
-  const tags = listMatchingTags("-beta.").filter((tag) => tag.startsWith("v"));
+function hasChangesSinceLastNightly() {
+  const tags = listMatchingTags("-nightly.").filter((tag) => tag.startsWith("v"));
   if (tags.length === 0) {
     return true;
   }
@@ -1179,7 +1179,7 @@ function normalizeConfig(raw) {
     schedules: raw.schedules,
     channels: {
       alpha: normalizeChannel(channels.alpha),
-      beta: normalizeChannel(channels.beta),
+      nightly: normalizeChannel(channels.nightly),
       rc: normalizeChannel(channels.rc),
       production: normalizeChannel(channels.production)
     },

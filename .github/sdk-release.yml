@@ -10,8 +10,8 @@ releases:
     target: mirror
 
 schedules:
-  nightly-beta:
-    operation: publish-beta
+  nightly:
+    operation: publish-nightly
     cron: "5,10,15,25,30,35,45,50,55 * * * *"
     timezone: America/Los_Angeles
 
@@ -27,11 +27,11 @@ channels:
     npm-dist-tag: alpha
     pypi-phase: alpha
 
-  beta:
+  nightly:
     source-branch: main
-    tag-pattern: "v{version}-beta.{date}.{time}"
-    npm-dist-tag: beta
-    pypi-phase: beta
+    tag-pattern: "v{version}-nightly.{date}.{time}"
+    npm-dist-tag: nightly
+    pypi-phase: dev
     only-if-changed: true
 
   rc:

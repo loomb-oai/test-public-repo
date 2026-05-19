@@ -20,7 +20,7 @@ The integrator-facing surface is now intentionally small:
 
 - `.github/workflows/release-bot.yml`
   - the single copy-paste workflow entrypoint for orchestration and registry jobs
-- `.github/workflows/nightly-beta-scheduler.yml`
+- `.github/workflows/nightly-scheduler.yml`
   - daily cron wrapper that dispatches `release-bot`
 - `.github/workflows/weekly-rc-scheduler.yml`
   - Monday cron wrapper that dispatches `release-bot`
@@ -44,7 +44,7 @@ The near-term sample uses tiny scheduler workflows inside the private repo. For
 the current end-to-end verification pass, they run on an intentionally faster
 test cadence:
 
-1. `nightly-beta-scheduler.yml` targets the non-RC five-minute slots: `5, 10, 15, 25, 30, 35, 45, 50, 55`.
+1. `nightly-scheduler.yml` targets the non-RC five-minute slots: `5, 10, 15, 25, 30, 35, 45, 50, 55`.
 2. `weekly-rc-scheduler.yml` targets minute offsets `0, 20, 40`.
 3. Each scheduler uses the workflow `GITHUB_TOKEN` to dispatch the same repo's
    `release-bot` workflow with:
@@ -53,8 +53,8 @@ test cadence:
 {
   "event_type": "sdk-release",
   "client_payload": {
-    "operation": "publish-beta",
-    "schedule-id": "nightly-beta"
+    "operation": "publish-nightly",
+    "schedule-id": "nightly"
   }
 }
 ```
@@ -86,7 +86,7 @@ authority:
 
 - when Release Please refreshes a release PR, the local action reads that PR
   head's `.release-please-manifest.json`
-- alpha, beta, and RC versions are derived from the candidate version found in
+- alpha, nightly, and RC versions are derived from the candidate version found in
   that Release Please-managed manifest
 - weekly RC cuts fork the RC branch from that same Release Please candidate
   commit, preserving the exact stable-version/changelog state Release Please
@@ -105,7 +105,7 @@ only decorates it for the selected channel.
 
 ```mermaid
 flowchart TD
-  A["nightly-beta-scheduler"] --> C["repository_dispatch: publish-beta"]
+  A["nightly-scheduler"] --> C["repository_dispatch: publish-nightly"]
   B["weekly-rc-scheduler"] --> D["repository_dispatch: cut-rc"]
   E["Manual workflow dispatch"] --> F["publish-alpha or publish-prod"]
   G["Push to rc/**"] --> H["publish-rc"]
@@ -125,8 +125,8 @@ The release policy still names the schedules in `.github/sdk-release.yml`:
 
 ```yaml
 schedules:
-  nightly-beta:
-    operation: publish-beta
+  nightly:
+    operation: publish-nightly
     cron: "0 18 * * *"
     timezone: America/Los_Angeles
 
@@ -147,10 +147,10 @@ The sample models:
    - manual immediate validation from `main`
    - npm example: `0.2.0-alpha.20260515.1`
    - PyPI example: `0.2.0a2026051501`
-2. `publish-beta`
+2. `publish-nightly`
    - temporary verification cadence targeting every 5-minute slot except the RC minutes
-   - npm example: `0.2.0-beta.20260515.1801`
-   - PyPI example: `0.2.0b202605151801`
+   - npm example: `0.2.0-nightly.20260515.1801`
+   - PyPI example: `0.2.0.dev202605151801`
 3. `cut-rc` and `publish-rc`
    - temporary verification cadence targeting branch cuts every 20 minutes into `rc/{version}`
    - scheduled cuts no-op when the existing RC branch already matches the current Release Please candidate commit
