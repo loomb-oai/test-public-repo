@@ -29,8 +29,8 @@ channels:
 
   nightly:
     source-branch: main
-    tag-pattern: "v{version}-nightly.{date}.{time}"
-    npm-dist-tag: nightly
+    tag-pattern: "v{version}-dev.{date}.{time}"
+    npm-dist-tag: dev
     pypi-phase: dev
     only-if-changed: true
 

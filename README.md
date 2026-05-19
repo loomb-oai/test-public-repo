@@ -149,7 +149,7 @@ The sample models:
    - PyPI example: `0.2.0a2026051501`
 2. `publish-nightly`
    - temporary verification cadence targeting every 5-minute slot except the RC minutes
-   - npm example: `0.2.0-nightly.20260515.1801`
+   - npm example: `0.2.0-dev.20260515.1801`
    - PyPI example: `0.2.0.dev202605151801`
 3. `cut-rc` and `publish-rc`
    - temporary verification cadence targeting branch cuts every 20 minutes into `rc/{version}`

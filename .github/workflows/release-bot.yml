@@ -3,7 +3,7 @@ run-name: >-
   ${{ github.event_name == 'workflow_dispatch' && format('[manual] [{0}] Release Bot', inputs.operation) ||
       github.event_name == 'repository_dispatch' && format('[auto] [{0}] Release Bot', github.event.client_payload.operation) ||
       github.event_name == 'release' && contains(github.event.release.tag_name, '-alpha.') && '[auto] [publish-alpha] Release Bot' ||
-      github.event_name == 'release' && contains(github.event.release.tag_name, '-nightly.') && '[auto] [publish-nightly] Release Bot' ||
+      github.event_name == 'release' && contains(github.event.release.tag_name, '-dev.') && '[auto] [publish-nightly] Release Bot' ||
       github.event_name == 'release' && contains(github.event.release.tag_name, '-rc.') && '[auto] [publish-rc] Release Bot' ||
       github.event_name == 'release' && '[auto] [publish-prod] Release Bot' ||
       github.event_name == 'push' && startsWith(github.ref_name, 'rc/') && '[auto] [publish-rc] Release Bot' ||

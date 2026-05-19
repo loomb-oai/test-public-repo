@@ -130,7 +130,7 @@ async function runEphemeralChannel(channel) {
     writeSummary([
       "# Nightly skipped",
       "",
-      "No repository changes were found since the most recent nightly tag."
+      "No repository changes were found since the most recent dev tag."
     ]);
     setOutput("release-skipped", "true");
     return;
@@ -711,7 +711,7 @@ function releaseMetadataFromTag(tag) {
     });
   }
 
-  match = tag.match(/^v(\d+\.\d+\.\d+)-nightly\.(\d{8})(?:\.(\d{4}))?$/);
+  match = tag.match(/^v(\d+\.\d+\.\d+)-dev\.(\d{8})(?:\.(\d{4}))?$/);
   if (match) {
     const [, baseVersion, date, time = null] = match;
     return buildReleaseMetadata({
@@ -976,7 +976,7 @@ function nextRcIteration(baseVersion) {
 }
 
 function hasChangesSinceLastNightly() {
-  const tags = listMatchingTags("-nightly.").filter((tag) => tag.startsWith("v"));
+  const tags = listMatchingTags("-dev.").filter((tag) => tag.startsWith("v"));
   if (tags.length === 0) {
     return true;
   }
