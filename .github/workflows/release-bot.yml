@@ -44,33 +44,20 @@ permissions:
   id-token: write
 
 jobs:
-  release:
+  prepare:
     runs-on: ubuntu-latest
     environment: main
     outputs:
       publish-registries: ${{ steps.sdk-release.outputs.publish-registries }}
+      release-context: ${{ steps.sdk-release.outputs.release-context }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.release.tag_name || github.ref }}
 
-      - name: Set up Node for npm Trusted Publishing
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-          package-manager-cache: false
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install Python build tool
-        run: python3 -m pip install build
-
-      - name: Run SDK release action
+      - name: Prepare SDK release
         id: sdk-release
         uses: loomb-oai/sdk-release-action@main
         with:
@@ -81,17 +68,57 @@ jobs:
           release-tag: ${{ github.event.release.tag_name || '' }}
           github-app-id: ${{ secrets.SDK_RELEASE_GH_APP_ID }}
           github-app-private-key: ${{ secrets.SDK_RELEASE_GH_APP_PRIVATE_KEY }}
+          prepare-only: true
 
-      - name: Upload PyPI distributions
-        if: ${{ steps.sdk-release.outputs.publish-registries == 'true' }}
-        uses: actions/upload-artifact@v4
+  node-sdk:
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment: main
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          name: pypi-dists
-          path: ${{ steps.sdk-release.outputs.pypi-packages-dir }}
+          fetch-depth: 0
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - name: Publish npm package lane
+        uses: loomb-oai/sdk-release-action/node@main
+        with:
+          release-context: ${{ needs.prepare.outputs.release-context }}
+          publish-registries: ${{ needs.prepare.outputs.publish-registries }}
+          package-dir: packages/node-sdk
+          package-name: "@loomb-oai/node-test"
+          version-file: src/index.js
+
+  python-sdk:
+    needs: prepare
+    runs-on: ubuntu-latest
+    outputs:
+      publish-ready: ${{ steps.python.outputs.publish-ready }}
+      artifact-name: ${{ steps.python.outputs.artifact-name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - name: Build Python package lane
+        id: python
+        uses: loomb-oai/sdk-release-action/python@main
+        with:
+          release-context: ${{ needs.prepare.outputs.release-context }}
+          publish-registries: ${{ needs.prepare.outputs.publish-registries }}
+          package-dir: packages/python-sdk
+          package-name: loomb-test
+          version-file: src/demo_python_sdk/__init__.py
 
   publish-pypi:
-    needs: release
-    if: ${{ needs.release.outputs.publish-registries == 'true' }}
+    needs: python-sdk
+    if: ${{ needs.python-sdk.outputs.publish-ready == 'true' }}
     runs-on: ubuntu-latest
     environment: main
     permissions:
@@ -100,7 +127,7 @@ jobs:
       - name: Download PyPI distributions
         uses: actions/download-artifact@v4
         with:
-          name: pypi-dists
+          name: ${{ needs.python-sdk.outputs.artifact-name }}
           path: dist/pypi
 
       - name: Publish Python package distributions to PyPI
