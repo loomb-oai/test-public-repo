@@ -1,8 +1,8 @@
 # SDK Release Action Simulation
 
-This repository models the intended integration shape for a future
-`sdk-release-action` plus a GitHub App control plane. The local action now
-wraps Release Please instead of standing alone as a fake version oracle.
+This repository models the intended integration shape for
+`loomb-oai/sdk-release-action` plus a GitHub App control plane. The shared
+action wraps Release Please instead of standing alone as a fake version oracle.
 
 This sample uses two repositories:
 
@@ -26,8 +26,8 @@ The integrator-facing surface is now intentionally small:
   - Monday cron wrapper that dispatches `release-bot`
 - `.github/sdk-release.yml`
   - repo-owned release policy, schedules, package definitions, and registry settings
-- `.github/actions/sdk-release-action`
-  - a local stand-in for the future hosted action
+- `loomb-oai/sdk-release-action@main`
+  - the shared action implementation consumed by this sample workflow
 - `.github/release-please-config.json`
   - Release Please manifest-mode package configuration
 - `.release-please-manifest.json`
@@ -70,7 +70,7 @@ sample.
 
 ## Release Please
 
-The local `sdk-release-action` wraps
+The shared `sdk-release-action` wraps
 `googleapis/release-please-action@v4` in manifest mode:
 
 - it reads `.github/release-please-config.json`
@@ -84,7 +84,7 @@ The local `sdk-release-action` wraps
 The sample release train now treats Release Please as the candidate-version
 authority:
 
-- when Release Please refreshes a release PR, the local action reads that PR
+- when Release Please refreshes a release PR, the shared action reads that PR
   head's `.release-please-manifest.json`
 - alpha, nightly, and RC versions are derived from the candidate version found in
   that Release Please-managed manifest
@@ -234,7 +234,7 @@ The App replaces any long-lived cross-repo token. It should:
 - mirror refs into the target repo
 - create the target GitHub Release that triggers registry publishing
 
-The sample workflow passes these CI secrets into the local action when
+The sample workflow passes these CI secrets into the shared action when
 mirror-targeted release behavior is configured:
 
 - `SDK_RELEASE_GH_APP_ID`
@@ -248,7 +248,7 @@ permissions should include:
 - `Issues: Read and write` for the Release Please issue/comment surfaces it may use
 - `Workflows: Read and write` so mirrored pushes can update `.github/workflows/*`
 
-The local action now mints an installation token with
+The shared action now mints an installation token with
 `actions/create-github-app-token@v3`, then:
 
 - gives Release Please a token that can create/update the release PR even when
@@ -275,7 +275,7 @@ contains:
 1. Start with `.github/sdk-release.yml`.
 2. Read the two scheduler workflows.
 3. Read `.github/workflows/release-bot.yml`.
-4. Follow `scripts/sdk-release-action.mjs` to see how one workflow run resolves:
+4. Follow `loomb-oai/sdk-release-action` to see how one workflow run resolves:
    - manual workflow dispatches
    - scheduler `repository_dispatch` events
    - pushes to `rc/**`

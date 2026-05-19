@@ -70,9 +70,9 @@ jobs:
       - name: Install Python build tool
         run: python3 -m pip install build
 
-      - name: Run local SDK release action
+      - name: Run SDK release action
         id: sdk-release
-        uses: ./.github/actions/sdk-release-action
+        uses: loomb-oai/sdk-release-action@main
         with:
           mode: ${{ github.event.inputs.operation || github.event.client_payload.operation || 'auto' }}
           config-file: .github/sdk-release.yml
