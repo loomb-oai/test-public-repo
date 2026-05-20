@@ -53,7 +53,8 @@ test cadence:
 {
   "event_type": "sdk-release",
   "client_payload": {
-    "operation": "publish-beta",
+    "operation": "PUB_BETA",
+    "run-name": "PUB_BETA - Release Bot",
     "schedule-id": "nightly-beta"
   }
 }
@@ -105,10 +106,10 @@ only decorates it for the selected channel.
 
 ```mermaid
 flowchart TD
-  A["nightly-scheduler"] --> C["repository_dispatch: publish-beta"]
-  B["weekly-rc-scheduler"] --> D["repository_dispatch: cut-rc"]
-  E["Manual workflow dispatch"] --> F["publish-alpha or publish-prod"]
-  G["Push to rc/**"] --> H["publish-rc"]
+  A["nightly-scheduler"] --> C["repository_dispatch: PUB_BETA"]
+  B["weekly-rc-scheduler"] --> D["repository_dispatch: CUT_RC"]
+  E["Manual workflow dispatch"] --> F["PUB_ALPHA or PUB_PROD"]
+  G["Push to rc/**"] --> H["PUB_RC"]
   C --> I["release-bot in private repo"]
   D --> I
   F --> I
@@ -129,22 +130,22 @@ does not repeat schedule definitions.
 
 The sample models:
 
-1. `publish-alpha`
+1. `PUB_ALPHA`
    - manual immediate validation from `main`
    - npm example: `0.2.0-alpha.20260515.1`
    - PyPI example: `0.2.0a2026051501`
-2. `publish-beta`
+2. `PUB_BETA`
    - temporary verification cadence targeting minute offsets `20` and `40`
    - npm example: `0.2.0-beta.20260515.1801`
    - PyPI example: `0.2.0b202605151801`
-3. `cut-rc` and `publish-rc`
+3. `CUT_RC` and `PUB_RC`
    - temporary verification cadence targeting branch cuts at minute offset `0`
    - scheduled cuts no-op when the existing RC branch already matches the current Release Please candidate commit
    - branch contents are snapped from the Release Please candidate commit
    - refreshes when critical fixes land on `rc/**`
    - npm example: `0.2.0-rc.1`
    - PyPI example: `0.2.0rc1`
-4. `publish-prod`
+4. `PUB_PROD`
    - manual finalization from a selected RC branch
    - promotes the preserved Release Please candidate state on that RC branch
    - npm and PyPI example: `0.2.0`

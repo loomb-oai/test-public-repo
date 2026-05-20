@@ -22,7 +22,8 @@ jobs:
               repo: context.repo.repo,
               event_type: "sdk-release",
               client_payload: {
-                operation: "cut-rc",
+                operation: "CUT_RC",
+                "run-name": "CUT_RC - Release Bot",
                 "schedule-id": "weekly-rc"
               }
             });

@@ -1,4 +1,5 @@
 name: release-bot
+run-name: ${{ github.event.client_payload['run-name'] || format('{0} - Release Bot', github.event.inputs.operation) || 'Release Bot' }}
 
 on:
   workflow_dispatch:
@@ -8,10 +9,10 @@ on:
         required: true
         type: choice
         options:
-          - publish-alpha
-          - publish-beta
-          - cut-rc
-          - publish-prod
+          - PUB_ALPHA
+          - PUB_BETA
+          - CUT_RC
+          - PUB_PROD
       rc-branch:
         description: "Required for publish-prod releases, e.g. rc/0.2.0"
         required: false
