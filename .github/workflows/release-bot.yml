@@ -38,20 +38,33 @@ jobs:
       pypi-publish-ready: ${{ steps.sdk-release.outputs.pypi-publish-ready }}
       pypi-artifact-name: ${{ steps.sdk-release.outputs.pypi-artifact-name }}
     steps:
-      - name: Checkout repository
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.SDK_RELEASE_GH_APP_ID }}
+          private-key: ${{ secrets.SDK_RELEASE_GH_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
+          permission-workflows: write
+
+      - name: Checkout SDK release action
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          ref: ${{ github.event.release.tag_name || github.ref }}
+          repository: loomb-oai/sdk-release-action
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+          path: .sdk-release-action
 
       - name: Run SDK release orchestration
         id: sdk-release
-        uses: loomb-oai/sdk-release-action@main
+        uses: ./.sdk-release-action
         with:
+          github-token: ${{ steps.app-token.outputs.token }}
           rc-branch: ${{ github.event.inputs['rc-branch'] || '' }}
           release-tag: ${{ github.event.release.tag_name || '' }}
-          github-app-id: ${{ secrets.SDK_RELEASE_GH_APP_ID }}
-          github-app-private-key: ${{ secrets.SDK_RELEASE_GH_APP_PRIVATE_KEY }}
 
   publish-pypi:
     needs: release
