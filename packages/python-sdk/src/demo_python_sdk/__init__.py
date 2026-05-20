@@ -1,13 +1,6 @@
 __version__ = "0.1.0"
+MAGIC_NUMBER = 7
 
 
-def python_gday(name: str = "release-action") -> str:
-    return f"g'day {name} from the demo Python SDK"
-
-
-def python_goodbye(name: str = "release-action") -> str:
-    return f"hooroo {name} from the demo Python SDK"
-
-
-def get_sdk_version() -> str:
-    return __version__
+def get_magic_number() -> int:
+    return MAGIC_NUMBER
