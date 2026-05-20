@@ -300,3 +300,5 @@ small so the release contract is easy to inspect:
 - the action owns event routing, build orchestration, and npm registry execution
 - the workflow owns the caller-level PyPI Trusted Publishing job
 - the mirror repo remains an exact Git mirror of the private source repository
+
+Counter: 1
