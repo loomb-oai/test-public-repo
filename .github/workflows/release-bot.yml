@@ -12,11 +12,16 @@ on:
           - PUB_ALPHA
           - PUB_BETA
           - CUT_RC
-          - PUB_PROD
+          - PROMOTE_RC
       rc-branch:
-        description: "Required for publish-prod releases, e.g. rc/0.2.0"
+        description: "Required for PROMOTE_RC, e.g. rc/0.2.0"
         required: false
         type: string
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
   push:
     branches:
       - main
