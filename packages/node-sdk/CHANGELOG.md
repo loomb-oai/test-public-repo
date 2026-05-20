@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/loomb-oai/test-private-repo/compare/node-sdk-v0.2.0...node-sdk-v0.3.0) (2026-05-20)
+
+
+### Features
+
+* **samples:** expose get_magic_number demo API ([e5c225e](https://github.com/loomb-oai/test-private-repo/commit/e5c225ea903ddd8d3f1050eddee1c0874b62c6aa))
+* **samples:** set mirrored magic number to 21 ([417d432](https://github.com/loomb-oai/test-private-repo/commit/417d432498de5f97e5a5ec2633f8b2bec9c4e170))
+* **samples:** set mirrored magic number to 21 ([0f10d0a](https://github.com/loomb-oai/test-private-repo/commit/0f10d0ae1945befad6ac668814aaba5e289719c5))
+* **sdk:** add goodbye variants ([caa91fc](https://github.com/loomb-oai/test-private-repo/commit/caa91fca6bfc2c24d682106118fe9745e16f7f22))
+* **sdk:** add goodbye variants ([e97f0aa](https://github.com/loomb-oai/test-private-repo/commit/e97f0aa36a2711d557b0bb799d309b35f80e8bc5))
+* **sdk:** rename greetings to australian gday APIs ([a8e6e88](https://github.com/loomb-oai/test-private-repo/commit/a8e6e8878f50d6bae03728cf45a7cf6610e15472))
+
 ## [0.2.0](https://github.com/loomb-oai/test-private-repo/compare/node-sdk-v0.1.0...node-sdk-v0.2.0) (2026-05-19)
 
 
