@@ -1,5 +1,5 @@
 name: release-bot
-run-name: ${{ github.event.client_payload['run-name'] || format('{0} - Release Bot', github.event.inputs.operation) || 'Release Bot' }}
+run-name: ${{ format('{0} - Release Bot', github.event.inputs.operation || '🤖') }}
 
 on:
   workflow_dispatch:
@@ -17,9 +17,6 @@ on:
         description: "Required for publish-prod releases, e.g. rc/0.2.0"
         required: false
         type: string
-  repository_dispatch:
-    types:
-      - sdk-release
   push:
     branches:
       - main
