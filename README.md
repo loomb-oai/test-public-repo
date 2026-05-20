@@ -44,8 +44,8 @@ The near-term sample uses tiny scheduler workflows inside the private repo. For
 the current end-to-end verification pass, they run on an intentionally faster
 test cadence:
 
-1. `nightly-scheduler.yml` targets the non-RC five-minute slots: `5, 10, 15, 25, 30, 35, 45, 50, 55`.
-2. `weekly-rc-scheduler.yml` targets minute offsets `0, 20, 40`.
+1. `nightly-scheduler.yml` targets minute offsets `10` and `40`.
+2. `weekly-rc-scheduler.yml` targets minute offsets `0` and `30`.
 3. Each scheduler uses the workflow `GITHUB_TOKEN` to dispatch the same repo's
    `release-bot` workflow with:
 
