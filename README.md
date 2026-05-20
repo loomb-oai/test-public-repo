@@ -54,7 +54,6 @@ test cadence:
   "event_type": "sdk-release",
   "client_payload": {
     "operation": "PUB_BETA",
-    "run-name": "PUB_BETA - Release Bot",
     "schedule-id": "nightly-beta"
   }
 }

@@ -23,7 +23,6 @@ jobs:
               event_type: "sdk-release",
               client_payload: {
                 operation: "CUT_RC",
-                "run-name": "CUT_RC - Release Bot",
                 "schedule-id": "weekly-rc"
               }
             });

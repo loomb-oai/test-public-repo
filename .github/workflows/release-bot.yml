@@ -1,5 +1,5 @@
 name: release-bot
-run-name: ${{ github.event.client_payload['run-name'] || (github.event.inputs.operation && format('{0} - Release Bot', github.event.inputs.operation)) || 'Release Bot' }}
+run-name: ${{ format('{0} - Release Bot', github.event.inputs.operation || github.event.client_payload.operation || '🤖') }}
 
 on:
   workflow_dispatch:
