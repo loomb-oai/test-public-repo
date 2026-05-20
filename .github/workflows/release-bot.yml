@@ -29,14 +29,31 @@ on:
 
 jobs:
   release:
+    runs-on: ubuntu-latest
+    environment: main
     permissions:
       contents: write
       issues: write
       pull-requests: write
       id-token: write
-    uses: loomb-oai/sdk-release-action/.github/workflows/release-bot.yml@main
-    with:
-      config-file: .github/sdk-release.yml
+    outputs:
+      pypi-publish-ready: ${{ steps.sdk-release.outputs.pypi-publish-ready }}
+      pypi-artifact-name: ${{ steps.sdk-release.outputs.pypi-artifact-name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - name: Run SDK release orchestration
+        id: sdk-release
+        uses: loomb-oai/sdk-release-action@main
+        with:
+          rc-branch: ${{ github.event.inputs['rc-branch'] || '' }}
+          release-tag: ${{ github.event.release.tag_name || '' }}
+          github-app-id: ${{ secrets.SDK_RELEASE_GH_APP_ID }}
+          github-app-private-key: ${{ secrets.SDK_RELEASE_GH_APP_PRIVATE_KEY }}
 
   publish-pypi:
     needs: release
