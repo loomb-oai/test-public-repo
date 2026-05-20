@@ -3,8 +3,8 @@
 Small Python package used by the SDK release action simulation.
 
 ```python
-from demo_python_sdk import get_sdk_version, python_hello_world
+from demo_python_sdk import get_sdk_version, python_gday
 
-python_hello_world()
+python_gday()
 get_sdk_version()
 ```
