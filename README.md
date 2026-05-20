@@ -108,7 +108,7 @@ only decorates it for the selected channel.
 flowchart TD
   A["nightly-scheduler"] --> C["workflow_dispatch: PUB_BETA"]
   B["weekly-rc-scheduler"] --> D["workflow_dispatch: CUT_RC"]
-  E["Manual workflow dispatch"] --> F["PUB_ALPHA or PUB_PROD"]
+  E["Manual workflow dispatch"] --> F["PUB_ALPHA or PROMOTE_RC"]
   G["Push to rc/**"] --> H["PUB_RC"]
   C --> I["release-bot in private repo"]
   D --> I
@@ -145,9 +145,10 @@ The sample models:
    - refreshes when critical fixes land on `rc/**`
    - npm example: `0.2.0-rc.1`
    - PyPI example: `0.2.0rc1`
-4. `PUB_PROD`
-   - manual finalization from a selected RC branch
-   - promotes the preserved Release Please candidate state on that RC branch
+4. `PROMOTE_RC`
+   - manual selection of the RC branch to ship
+   - opens a review PR that merges the preserved Release Please candidate state from that RC branch
+   - the actual production release only runs after that PR is approved and merged
    - npm and PyPI example: `0.2.0`
 
 Those examples assume Release Please's current candidate version is `0.2.0`.
