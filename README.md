@@ -146,8 +146,8 @@ The sample models:
    - npm example: `0.2.0-rc.1`
    - PyPI example: `0.2.0rc1`
 4. `PROMOTE_RC`
-   - manual selection of the RC branch to ship
-   - opens a review PR that merges the preserved Release Please candidate state from that RC branch
+   - manual selection of the RC branch or exact RC tag to ship
+   - opens a review PR that merges the preserved Release Please candidate state from that selected RC ref
    - the actual production release only runs after that PR is approved and merged
    - npm and PyPI example: `0.2.0`
 
