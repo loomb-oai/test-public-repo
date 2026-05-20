@@ -26,8 +26,9 @@ The integrator-facing surface is now intentionally small:
   - Monday cron wrapper that dispatches `release-bot`
 - `.github/sdk-release.yml`
   - repo-owned release policy, package definitions, and registry settings
-- `loomb-oai/sdk-release-action@main`
-  - the shared action implementation consumed by this sample workflow
+- `loomb-oai/sdk-release-action`
+  - the private shared action repo checked out by this sample workflow before it
+    runs the local action path
 - `.github/release-please-config.json`
   - Release Please manifest-mode package configuration
 - `.release-please-manifest.json`
@@ -220,8 +221,9 @@ The App replaces any long-lived cross-repo token. It should:
 - mirror refs into the target repo
 - create the target GitHub Release that triggers registry publishing
 
-The sample workflow passes these CI secrets into the shared action when
-mirror-targeted release behavior is configured:
+The sample workflow reads these Environment Secrets, creates a GitHub App
+installation token, and passes only that short-lived token into the shared
+action:
 
 - `SDK_RELEASE_GH_APP_ID`
 - `SDK_RELEASE_GH_APP_PRIVATE_KEY`
@@ -234,11 +236,15 @@ permissions should include:
 - `Issues: Read and write` for the Release Please issue/comment surfaces it may use
 - `Workflows: Read and write` so mirrored pushes can update `.github/workflows/*`
 
-The shared action now mints an installation token with
-`actions/create-github-app-token@v3`, then:
+The release workflow mints an installation token with
+`actions/create-github-app-token@v3`, checks out the private
+`sdk-release-action` repository, and passes the token into the local action.
+That action then:
 
 - gives Release Please a token that can create/update the release PR even when
   repository policy blocks `GITHUB_TOKEN` from creating pull requests
+- checks out the workflow repository into its own internal worktree before it
+  reads `.github/sdk-release.yml`
 - pushes the selected source branch into the mirror repo
 - pushes the release tag into the mirror repo
 - creates the mirror-side GitHub Release if it does not already exist
@@ -252,7 +258,7 @@ contains:
 - source repo
 - configured Release target repo
 - configured publishing surface
-- whether the App credentials and minted token were present
+- whether the minted GitHub token was present
 - tag and release metadata
 - artifact paths to attach
 
