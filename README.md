@@ -145,9 +145,9 @@ The sample models:
    - refreshes when critical fixes land on `rc/**`
    - npm example: `0.2.0-rc.1`
    - PyPI example: `0.2.0rc1`
-4. `PUB_PROD`
-   - manual finalization from a selected RC branch
-   - promotes the preserved Release Please candidate state on that RC branch
+4. `PROMOTE_RC`
+   - manual finalization from a selected RC branch or exact RC tag
+   - promotes the preserved Release Please candidate state from that selected RC ref
    - npm and PyPI example: `0.2.0`
 
 Those examples assume Release Please's current candidate version is `0.2.0`.

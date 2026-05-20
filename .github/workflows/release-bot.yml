@@ -12,9 +12,9 @@ on:
           - PUB_ALPHA
           - PUB_BETA
           - CUT_RC
-          - PUB_PROD
-      rc-branch:
-        description: "Required for publish-prod releases, e.g. rc/0.2.0"
+          - PROMOTE_RC
+      rc-ref:
+        description: "Required for PROMOTE_RC releases, e.g. rc/0.2.0 or v0.2.0-rc.4"
         required: false
         type: string
   push:
@@ -63,7 +63,7 @@ jobs:
         uses: ./.sdk-release-action
         with:
           github-token: ${{ steps.app-token.outputs.token }}
-          rc-branch: ${{ github.event.inputs['rc-branch'] || '' }}
+          rc-ref: ${{ github.event.inputs['rc-ref'] || '' }}
           release-tag: ${{ github.event.release.tag_name || '' }}
 
   publish-pypi:
