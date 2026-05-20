@@ -9,7 +9,7 @@ on:
         type: choice
         options:
           - publish-alpha
-          - publish-nightly
+          - publish-beta
           - cut-rc
           - publish-prod
       rc-branch:

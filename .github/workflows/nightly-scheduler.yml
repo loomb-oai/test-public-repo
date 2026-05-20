@@ -2,7 +2,7 @@ name: nightly-scheduler
 
 on:
   schedule:
-    - cron: "10,40 * * * *"
+    - cron: "20,40 * * * *"
       timezone: "America/Los_Angeles"
   workflow_dispatch:
 
@@ -13,7 +13,7 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger release-bot publish-nightly
+      - name: Trigger release-bot publish-beta
         uses: actions/github-script@v8
         with:
           script: |
@@ -22,7 +22,7 @@ jobs:
               repo: context.repo.repo,
               event_type: "sdk-release",
               client_payload: {
-                operation: "publish-nightly",
-                "schedule-id": "nightly"
+                operation: "publish-beta",
+                "schedule-id": "nightly-beta"
               }
             });
