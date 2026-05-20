@@ -9,17 +9,6 @@ releases:
   github:
     target: mirror
 
-schedules:
-  nightly:
-    operation: publish-nightly
-    cron: "5,10,15,25,30,35,45,50,55 * * * *"
-    timezone: America/Los_Angeles
-
-  weekly-rc:
-    operation: cut-rc
-    cron: "0,20,40 * * * *"
-    timezone: America/Los_Angeles
-
 channels:
   alpha:
     source-branch: main
@@ -27,11 +16,11 @@ channels:
     npm-dist-tag: alpha
     pypi-phase: alpha
 
-  nightly:
+  beta:
     source-branch: main
-    tag-pattern: "v{version}-dev.{date}.{time}"
-    npm-dist-tag: dev
-    pypi-phase: dev
+    tag-pattern: "v{version}-beta.{date}.{time}"
+    npm-dist-tag: beta
+    pypi-phase: beta
     only-if-changed: true
 
   rc:
