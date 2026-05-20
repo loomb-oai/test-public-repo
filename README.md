@@ -46,15 +46,15 @@ test cadence:
 
 1. `nightly-scheduler.yml` targets minute offsets `20` and `40`.
 2. `weekly-rc-scheduler.yml` targets minute offset `0`.
-3. Each scheduler uses the workflow `GITHUB_TOKEN` to dispatch the same repo's
-   `release-bot` workflow with:
+3. Each scheduler uses the workflow `GITHUB_TOKEN` to workflow-dispatch the
+   same repo's `release-bot` workflow with:
 
 ```json
 {
-  "event_type": "sdk-release",
-  "client_payload": {
-    "operation": "PUB_BETA",
-    "schedule-id": "nightly-beta"
+  "workflow_id": "release-bot.yml",
+  "ref": "main",
+  "inputs": {
+    "operation": "PUB_BETA"
   }
 }
 ```
@@ -105,8 +105,8 @@ only decorates it for the selected channel.
 
 ```mermaid
 flowchart TD
-  A["nightly-scheduler"] --> C["repository_dispatch: PUB_BETA"]
-  B["weekly-rc-scheduler"] --> D["repository_dispatch: CUT_RC"]
+  A["nightly-scheduler"] --> C["workflow_dispatch: PUB_BETA"]
+  B["weekly-rc-scheduler"] --> D["workflow_dispatch: CUT_RC"]
   E["Manual workflow dispatch"] --> F["PUB_ALPHA or PUB_PROD"]
   G["Push to rc/**"] --> H["PUB_RC"]
   C --> I["release-bot in private repo"]
@@ -263,7 +263,7 @@ contains:
 3. Read `.github/workflows/release-bot.yml`.
 4. Follow `loomb-oai/sdk-release-action` to see how one workflow run resolves:
    - manual workflow dispatches
-   - scheduler `repository_dispatch` events
+   - scheduler `workflow_dispatch` events
    - pushes to `rc/**`
    - mirrored release events
 5. Inspect `dist/release-manifest.json` after a run to see the npm/PyPI release

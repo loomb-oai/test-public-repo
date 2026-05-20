@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  actions: write
 
 jobs:
   dispatch:
@@ -17,12 +17,12 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
-            await github.rest.repos.createDispatchEvent({
+            await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              event_type: "sdk-release",
-              client_payload: {
-                operation: "PUB_BETA",
-                "schedule-id": "nightly-beta"
+              workflow_id: "release-bot.yml",
+              ref: "main",
+              inputs: {
+                operation: "PUB_BETA"
               }
             });
