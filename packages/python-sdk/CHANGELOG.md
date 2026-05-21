@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/loomb-oai/test-private-repo/compare/python-sdk-v0.3.0...python-sdk-v0.4.0) (2026-05-21)
+
+
+### Features
+
+* **samples:** set magic number to 33 ([b1818fb](https://github.com/loomb-oai/test-private-repo/commit/b1818fb82bed17e04a8d6ee31ff37e9634341522))
+* **samples:** set magic number to 33 ([72b8c88](https://github.com/loomb-oai/test-private-repo/commit/72b8c8888952c548c07099d5b1c656312e9068cf))
+
 ## [0.3.0](https://github.com/loomb-oai/test-private-repo/compare/python-sdk-v0.2.0...python-sdk-v0.3.0) (2026-05-20)
 
 
