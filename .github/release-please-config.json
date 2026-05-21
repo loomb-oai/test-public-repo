@@ -1,5 +1,6 @@
 {
   "include-v-in-tag": true,
+  "pull-request-header": "> [!CAUTION]\n> DO NOT MERGE: This is managed by a bot.",
   "packages": {
     "packages/node-sdk": {
       "component": "node-sdk",
