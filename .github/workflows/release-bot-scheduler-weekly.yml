@@ -1,8 +1,8 @@
-name: nightly-scheduler
+name: release-bot-scheduler-weekly
 
 on:
   schedule:
-    - cron: "20,40 * * * *"
+    - cron: "0 * * * *"
       timezone: "America/Los_Angeles"
   workflow_dispatch:
 
@@ -13,7 +13,7 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger release-bot PUB_BETA
+      - name: Trigger release-bot RC cut
         uses: actions/github-script@v8
         with:
           script: |
@@ -23,6 +23,6 @@ jobs:
               workflow_id: "release-bot.yml",
               ref: "main",
               inputs: {
-                operation: "PUB_BETA"
+                operation: "CUT_RC"
               }
             });

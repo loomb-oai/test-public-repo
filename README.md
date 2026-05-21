@@ -20,9 +20,9 @@ The integrator-facing surface is now intentionally small:
 
 - `.github/workflows/release-bot.yml`
   - the single copy-paste workflow entrypoint for orchestration and registry jobs
-- `.github/workflows/nightly-scheduler.yml`
+- `.github/workflows/release-bot-scheduler-nightly.yml`
   - daily cron wrapper that dispatches `release-bot`
-- `.github/workflows/weekly-rc-scheduler.yml`
+- `.github/workflows/release-bot-scheduler-weekly.yml`
   - Monday cron wrapper that dispatches `release-bot`
 - `.github/sdk-release.yml`
   - repo-owned release policy, package definitions, and registry settings
@@ -45,8 +45,8 @@ The near-term sample uses tiny scheduler workflows inside the private repo. For
 the current end-to-end verification pass, they run on an intentionally faster
 test cadence:
 
-1. `nightly-scheduler.yml` targets minute offsets `20` and `40`.
-2. `weekly-rc-scheduler.yml` targets minute offset `0`.
+1. `release-bot-scheduler-nightly.yml` targets minute offsets `20` and `40`.
+2. `release-bot-scheduler-weekly.yml` targets minute offset `0`.
 3. Each scheduler uses the workflow `GITHUB_TOKEN` to workflow-dispatch the
    same repo's `release-bot` workflow with:
 
@@ -106,8 +106,8 @@ only decorates it for the selected channel.
 
 ```mermaid
 flowchart TD
-  A["nightly-scheduler"] --> C["workflow_dispatch: PUB_BETA"]
-  B["weekly-rc-scheduler"] --> D["workflow_dispatch: CUT_RC"]
+  A["release-bot-scheduler-nightly"] --> C["workflow_dispatch: PUB_BETA"]
+  B["release-bot-scheduler-weekly"] --> D["workflow_dispatch: CUT_RC"]
   E["Manual workflow dispatch"] --> F["PUB_ALPHA or PROMOTE_RC"]
   G["Push to rc/**"] --> H["PUB_RC"]
   C --> I["release-bot in private repo"]
