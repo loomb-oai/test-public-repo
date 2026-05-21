@@ -226,7 +226,7 @@ The sample workflow reads these Environment Secrets, creates a GitHub App
 installation token, and passes only that short-lived token into the shared
 action:
 
-- `SDK_RELEASE_GH_APP_ID`
+- `SDK_RELEASE_GH_CLIENT_ID`
 - `SDK_RELEASE_GH_APP_PRIVATE_KEY`
 
 The GitHub App needs to be installed on both repositories. Its repository
