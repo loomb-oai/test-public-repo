@@ -15,6 +15,7 @@ permissions:
 jobs:
   create-pr:
     runs-on: ubuntu-latest
+    environment: main
     steps:
       - name: Create GitHub App token
         id: app-token
