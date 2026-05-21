@@ -1,0 +1,82 @@
+name: simulate-main-change
+run-name: Simulate magic number change
+
+on:
+  workflow_dispatch:
+    inputs:
+      magic_number:
+        description: "Integer to write. Leave blank to derive one from the run number."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.SDK_RELEASE_GH_APP_ID }}
+          private-key: ${{ secrets.SDK_RELEASE_GH_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Update magic number
+        id: update
+        env:
+          INPUT_MAGIC_NUMBER: ${{ inputs.magic_number }}
+        run: |
+          set -euo pipefail
+
+          magic_number="${INPUT_MAGIC_NUMBER}"
+          if [ -z "${magic_number}" ]; then
+            magic_number="$((GITHUB_RUN_NUMBER + 9))"
+          fi
+
+          if ! [[ "${magic_number}" =~ ^[0-9]+$ ]]; then
+            echo "::error::magic_number must be a non-negative integer"
+            exit 1
+          fi
+
+          export MAGIC_NUMBER="${magic_number}"
+          perl -0pi -e 's/const MAGIC_NUMBER = \d+;/const MAGIC_NUMBER = $ENV{MAGIC_NUMBER};/' packages/node-sdk/src/index.js
+          perl -0pi -e 's/MAGIC_NUMBER = \d+/MAGIC_NUMBER = $ENV{MAGIC_NUMBER}/' packages/python-sdk/src/demo_python_sdk/__init__.py
+
+          if git diff --quiet; then
+            echo "::error::Magic number is already ${magic_number}; choose another value."
+            exit 1
+          fi
+
+          echo "magic_number=${magic_number}" >> "${GITHUB_OUTPUT}"
+
+      - name: Open simulation PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          MAGIC_NUMBER: ${{ steps.update.outputs.magic_number }}
+        run: |
+          set -euo pipefail
+
+          branch="simulate/magic-number-${MAGIC_NUMBER}-${GITHUB_RUN_ID}"
+          git config user.name "sdk-release-app[bot]"
+          git config user.email "sdk-release-app[bot]@users.noreply.github.com"
+          git switch -c "${branch}"
+          git add packages/node-sdk/src/index.js packages/python-sdk/src/demo_python_sdk/__init__.py
+          git commit -m "Simulate magic number ${MAGIC_NUMBER}"
+          git push --set-upstream origin "${branch}"
+
+          gh pr create \
+            --base main \
+            --head "${branch}" \
+            --title "Simulate magic number ${MAGIC_NUMBER}" \
+            --body "Updates the SDK magic number to ${MAGIC_NUMBER} to simulate a main-branch code change through a PR."
