@@ -76,8 +76,16 @@ jobs:
           git commit -m "feat(sdk): simulate magic number ${MAGIC_NUMBER}"
           git push --set-upstream origin "${branch}"
 
-          gh pr create \
+          pr_url="$(gh pr create \
             --base main \
             --head "${branch}" \
             --title "feat(sdk): simulate magic number ${MAGIC_NUMBER}" \
-            --body "Updates the SDK magic number to ${MAGIC_NUMBER} to simulate a main-branch code change through a PR."
+            --body "Updates the SDK magic number to ${MAGIC_NUMBER} to simulate a main-branch code change through a PR.")"
+
+          {
+            echo "## Simulation PR"
+            echo
+            echo "- Magic number: \`${MAGIC_NUMBER}\`"
+            echo "- Branch: \`${branch}\`"
+            echo "- Pull request: [Open PR](${pr_url})"
+          } >> "${GITHUB_STEP_SUMMARY}"
