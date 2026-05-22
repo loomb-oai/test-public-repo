@@ -25,16 +25,17 @@ channels:
 
   rc:
     source-branch: main
-    branch-pattern: "rc/{version}"
+    branch-pattern: "rc"
     tag-pattern: "v{version}-rc.{iteration}"
     npm-dist-tag: rc
     pypi-phase: rc
 
   production:
-    source-branch-pattern: "rc/{version}"
+    source-branch-pattern: "rc"
     tag-pattern: "v{version}"
     npm-dist-tag: latest
     pypi-phase: final
+    minimum-rc-bake-days: 7
 
 publishing:
   mode: publish

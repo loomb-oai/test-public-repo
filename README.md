@@ -76,9 +76,9 @@ The shared `sdk-release-action` wraps
 
 - it reads `.github/release-please-config.json`
 - it reads `.release-please-manifest.json`
-- it refreshes the private repo Release Please PR after normal pushes to
-  `main`
-- it also refreshes that plan before scheduled/manual release-train runs
+- scheduled RC cuts refresh the shared `rc` branch from `main`, then run
+  Release Please against `rc`
+- it does not keep a separate rolling Release Please PR on `main`
 - it sets `skip-github-release: true` because the mirror flow owns the target
   GitHub Release creation
 
@@ -89,12 +89,12 @@ authority:
   head's `.release-please-manifest.json`
 - alpha, beta, and RC versions are derived from the candidate version found in
   that Release Please-managed manifest
-- weekly RC cuts fork the RC branch from that same Release Please candidate
-  commit, preserving the exact stable-version/changelog state Release Please
-  authored for that train
+- weekly RC cuts move the shared `rc` branch forward from `main`, then publish
+  the next RC tag from the Release Please PR head for `rc`
+- previously published RC tags remain durable promotion candidates even after
+  the `rc` branch advances
 - RC and final publish jobs apply prerelease or final packaging overlays only in
-  the CI workspace; they do not rewrite the RC branch's Release Please-authored
-  stable files
+  the CI workspace; they do not rewrite the shared RC branch's stable files
 - local/offline simulations fall back to the checked-in manifest when no PR
   metadata is available
 
@@ -108,8 +108,9 @@ only decorates it for the selected channel.
 flowchart TD
   A["release-bot-scheduler-nightly"] --> C["workflow_dispatch: PUB_BETA"]
   B["release-bot-scheduler-weekly"] --> D["workflow_dispatch: CUT_RC"]
-  E["Manual workflow dispatch"] --> F["PUB_ALPHA or PROMOTE_RC"]
-  G["Push to rc/**"] --> H["PUB_RC"]
+  E["Manual workflow dispatch"] --> F["PUB_ALPHA, PUB_RC, CHERRY_PICK_RC, or PROMOTE_RC"]
+  D --> G["refresh rc from main"]
+  G --> H["Release Please PR targets rc"]
   C --> I["release-bot in private repo"]
   D --> I
   F --> I
@@ -140,14 +141,16 @@ The sample models:
    - PyPI example: `0.2.0b202605151801`
 3. `CUT_RC` and `PUB_RC`
    - temporary verification cadence targeting branch cuts at minute offset `0`
-   - scheduled cuts no-op when the existing RC branch already matches the current Release Please candidate commit
-   - branch contents are snapped from the Release Please candidate commit
-   - refreshes when critical fixes land on `rc/**`
+   - scheduled cuts refresh the shared `rc` branch from `main`
+   - Release Please tracks `rc` and owns the candidate manifest/changelog state
+   - `PUB_RC` publishes the next RC tag from the Release Please PR head for `rc`
+   - cherry-picks are proposed into `rc`; publish again manually after the batch is merged
    - npm example: `0.2.0-rc.1`
    - PyPI example: `0.2.0rc1`
 4. `PROMOTE_RC`
-   - manual selection of the RC branch or exact RC tag to ship
-   - opens a review PR that merges the preserved Release Please candidate state from that selected RC ref
+   - manual selection of the exact RC tag to ship
+   - opens a review PR that merges the preserved Release Please candidate state from that selected RC tag
+   - warns when the selected RC is younger than the configured bake window, newer RC tags exist, or `rc` has moved on
    - the actual production release only runs after that PR is approved and merged
    - npm and PyPI example: `0.2.0`
 

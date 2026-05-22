@@ -16,7 +16,7 @@ on:
           - CHERRY_PICK_RC
           - PROMOTE_RC
       rc-ref:
-        description: "Required for PUB_RC, CHERRY_PICK_RC, and PROMOTE_RC, e.g. rc/0.2.0 or v0.2.0-rc.4"
+        description: "Required for PUB_RC and CHERRY_PICK_RC as an RC branch, or PROMOTE_RC as an RC tag, e.g. rc or v0.2.0-rc.4"
         required: false
         type: string
       cherry-pick-refs:
