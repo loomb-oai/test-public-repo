@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.0](https://github.com/loomb-oai/test-private-repo/compare/python-sdk-v0.7.0...python-sdk-v0.8.0) (2026-05-22)
+
+
+### Features
+
+* **sdk:** simulate magic number 1 ([ca9774c](https://github.com/loomb-oai/test-private-repo/commit/ca9774c53d5f143917934004a3f275a67976f0e4))
+* **sdk:** simulate magic number 1 ([f9a635a](https://github.com/loomb-oai/test-private-repo/commit/f9a635ace2259a00d5ddb92b266045b9de3730ef))
+* **sdk:** simulate magic number 22 ([c87852a](https://github.com/loomb-oai/test-private-repo/commit/c87852a50d447a73815297c1b94ee2e68786c965))
+* **sdk:** simulate magic number 22 ([ce9f4b8](https://github.com/loomb-oai/test-private-repo/commit/ce9f4b841e9e84f0c0bb3987993c70286c895d5e))
+
 ## [0.7.0](https://github.com/loomb-oai/test-private-repo/compare/python-sdk-v0.6.0...python-sdk-v0.7.0) (2026-05-22)
 
 
