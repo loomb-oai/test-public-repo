@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/loomb-oai/test-private-repo/compare/node-sdk-v0.6.0...node-sdk-v0.7.0) (2026-05-22)
+
+
+### Features
+
+* **sdk:** simulate magic number 321 ([716e246](https://github.com/loomb-oai/test-private-repo/commit/716e246f737e8ff2498b24ecb786079cf6783c0a))
+* **sdk:** simulate magic number 321 ([2e88b92](https://github.com/loomb-oai/test-private-repo/commit/2e88b92ce694afbf5d2f3bcf8e65829384ce95be))
+* **sdk:** simulate magic number 7 ([d67cbc2](https://github.com/loomb-oai/test-private-repo/commit/d67cbc29b7b78ad62fa5275ea96832ed95f2e486))
+* **sdk:** simulate magic number 7 ([0f7733d](https://github.com/loomb-oai/test-private-repo/commit/0f7733d731648e571866686dcf1ed2db493d2f62))
+* **sdk:** simulate magic number 8 ([6dcd373](https://github.com/loomb-oai/test-private-repo/commit/6dcd37317dd82fdb45ce1351b93453367543faa6))
+* **sdk:** simulate magic number 8 ([f02a37d](https://github.com/loomb-oai/test-private-repo/commit/f02a37d388f286711958d1a059586c3ba7b352de))
+
 ## [0.6.0](https://github.com/loomb-oai/test-private-repo/compare/node-sdk-v0.5.0...node-sdk-v0.6.0) (2026-05-22)
 
 
