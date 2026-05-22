@@ -14,6 +14,7 @@ on:
           - CUT_RC
           - PUB_RC
           - CHERRY_PICK_RC
+          - CREATE_HOTFIX
           - PROMOTE_RC
       rc-ref:
         description: "Required for PUB_RC and CHERRY_PICK_RC as an RC branch, or PROMOTE_RC as an RC tag, e.g. rc or v0.2.0-rc.4"
@@ -21,6 +22,18 @@ on:
         type: string
       cherry-pick-refs:
         description: "Required for CHERRY_PICK_RC. Commit SHAs/refs separated by spaces, commas, or newlines."
+        required: false
+        type: string
+      hotfix-base-tag:
+        description: "Required for CREATE_HOTFIX. Production tag to patch, e.g. v0.9.0."
+        required: false
+        type: string
+      hotfix-branch:
+        description: "Optional for CREATE_HOTFIX. Defaults to hotfix/<major>.<minor>.x."
+        required: false
+        type: string
+      hotfix-version:
+        description: "Optional for CREATE_HOTFIX. Defaults to the next patch version."
         required: false
         type: string
   pull_request:
@@ -75,6 +88,9 @@ jobs:
           github-token: ${{ steps.app-token.outputs.token }}
           rc-ref: ${{ github.event.inputs['rc-ref'] || '' }}
           cherry-pick-refs: ${{ github.event.inputs['cherry-pick-refs'] || '' }}
+          hotfix-base-tag: ${{ github.event.inputs['hotfix-base-tag'] || '' }}
+          hotfix-branch: ${{ github.event.inputs['hotfix-branch'] || '' }}
+          hotfix-version: ${{ github.event.inputs['hotfix-version'] || '' }}
           release-tag: ${{ github.event.release.tag_name || '' }}
 
   publish-pypi:
