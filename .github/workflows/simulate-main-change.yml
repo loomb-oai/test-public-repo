@@ -73,11 +73,11 @@ jobs:
           git config user.email "sdk-release-app[bot]@users.noreply.github.com"
           git switch -c "${branch}"
           git add packages/node-sdk/src/index.js packages/python-sdk/src/demo_python_sdk/__init__.py
-          git commit -m "Simulate magic number ${MAGIC_NUMBER}"
+          git commit -m "feat(sdk): simulate magic number ${MAGIC_NUMBER}"
           git push --set-upstream origin "${branch}"
 
           gh pr create \
             --base main \
             --head "${branch}" \
-            --title "Simulate magic number ${MAGIC_NUMBER}" \
+            --title "feat(sdk): simulate magic number ${MAGIC_NUMBER}" \
             --body "Updates the SDK magic number to ${MAGIC_NUMBER} to simulate a main-branch code change through a PR."
