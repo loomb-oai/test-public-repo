@@ -1,6 +1,6 @@
 {
   "name": "@loomb-oai/node-test",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Demo Node package for the SDK release action simulation.",
   "main": "src/index.js",
   "repository": {
