@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0](https://github.com/loomb-oai/test-private-repo/compare/python-sdk-v0.9.0...python-sdk-v0.10.0) (2026-05-22)
+
+
+### Features
+
+* **sdk:** simulate magic number 1111 ([2dde63e](https://github.com/loomb-oai/test-private-repo/commit/2dde63e584a0500cd5b78efbc4096bb36c42c85f))
+* **sdk:** simulate magic number 1111 ([d08d271](https://github.com/loomb-oai/test-private-repo/commit/d08d271be00bee4c96966c87f6d3818c72c5f29c))
+
 ## [0.9.0](https://github.com/loomb-oai/test-private-repo/compare/python-sdk-v0.8.0...python-sdk-v0.9.0) (2026-05-22)
 
 
