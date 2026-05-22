@@ -1,5 +1,5 @@
 __version__ = "0.1.0"
-MAGIC_NUMBER = 8
+MAGIC_NUMBER = 7
 
 
 def get_magic_number() -> int:
