@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/loomb-oai/test-private-repo/compare/python-sdk-v0.8.0...python-sdk-v0.9.0) (2026-05-22)
+
+
+### Features
+
+* **sdk:** simulate magic number 31 ([0ee2bdb](https://github.com/loomb-oai/test-private-repo/commit/0ee2bdb69b9fe7564741b3aa69bb89023cafa8c3))
+* **sdk:** simulate magic number 31 ([324d0cd](https://github.com/loomb-oai/test-private-repo/commit/324d0cde44231b4fd8f0aede6f8d40070b91b0af))
+
 ## [0.8.0](https://github.com/loomb-oai/test-private-repo/compare/python-sdk-v0.7.0...python-sdk-v0.8.0) (2026-05-22)
 
 
