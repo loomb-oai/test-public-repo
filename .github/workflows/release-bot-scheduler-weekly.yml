@@ -2,7 +2,7 @@ name: release-bot-scheduler-weekly
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "1 0 * * 1"
       timezone: "America/Los_Angeles"
   workflow_dispatch:
 

@@ -41,12 +41,14 @@ the final PyPI publish job together in one workflow file.
 
 ## Control Plane
 
-The near-term sample uses tiny scheduler workflows inside the private repo. For
-the current end-to-end verification pass, they run on an intentionally faster
-test cadence:
+The sample uses tiny scheduler workflows inside the private repo on the intended
+production cadence:
 
-1. `release-bot-scheduler-nightly.yml` targets minute offsets `20` and `40`.
-2. `release-bot-scheduler-weekly.yml` targets minute offset `0`.
+1. `release-bot-scheduler-nightly.yml` runs at 6:00 PM Pacific time with
+   `cron: "0 18 * * *"` and `timezone: "America/Los_Angeles"`.
+2. `release-bot-scheduler-weekly.yml` runs every Monday at 12:01 AM Pacific
+   time with `cron: "1 0 * * 1"` and
+   `timezone: "America/Los_Angeles"`.
 3. Each scheduler uses the workflow `GITHUB_TOKEN` to workflow-dispatch the
    same repo's `release-bot` workflow with:
 
